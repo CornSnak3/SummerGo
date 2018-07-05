@@ -11,8 +11,12 @@ public class Main {
         board.makeMove(2, 1);
         board.makeMove(2, 0);
         board.makeMove(3, 0);
-        System.out.println(board);
         board.makeMove(7, 7);
+        board.makeMove(1, 0);
+        System.out.println(board);
+        board.undo();
+        System.out.println(board);
+        board.redo();
         System.out.println(board);
 
     }
