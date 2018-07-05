@@ -7,7 +7,7 @@ public class Board {
 
     private final MoveHistory moveHistory;
 
-    private final Intersection[][] intersections;
+    private Intersection[][] intersections;
     private final int boardSize;
 
     private int passCount;
@@ -20,7 +20,7 @@ public class Board {
 
     public Board(int boardSize) {
         this.boardSize = boardSize;
-        this.moveHistory = new MoveHistory();
+        this.moveHistory = new MoveHistory(this);
         this.intersections = new Intersection[boardSize][boardSize];
         for (int x = 0; x < boardSize; x++)
             for (int y = 0; y < boardSize; y++)
@@ -28,6 +28,10 @@ public class Board {
         this.passCount = 0;
         this.currentPlayer = -1;
         this.blackCaptures = this.whiteCaptures = 0;
+    }
+
+    public int getBoardSize() {
+        return boardSize;
     }
 
     public void makeMove(int x, int y) {
@@ -77,6 +81,30 @@ public class Board {
         changePlayer();
     }
 
+    //TODO pass mechanics
+
+    public void undo() {
+        var boardState = moveHistory.undo();
+        proceedMoveHistory(boardState);
+    }
+
+    public void redo() {
+        var boardState = moveHistory.redo();
+        proceedMoveHistory(boardState);
+    }
+
+    private void proceedMoveHistory(int[][] boardState) {
+        if (boardState != null) {
+            Move move = moveHistory.getCurrentMove();
+            blackCaptures = move.getBlackCaptures();
+            whiteCaptures = move.getWhiteCaptures();
+            for (int x = 0; x < boardSize; x++)
+                for (int y = 0; y < boardSize; y++)
+                    intersections[x][y].setState(boardState[x][y]);
+        }
+    }
+
+
     private void changePlayer() {
         currentPlayer = (currentPlayer == -1) ? 1 : -1;
     }
@@ -125,6 +153,10 @@ public class Board {
         return sb.toString();
     }
 
+    public Intersection[][] getIntersections() {
+        return intersections;
+    }
+
     /**
      * Class representing a stone chain. Used in on-the-fly move calculation.
      *
@@ -149,7 +181,9 @@ public class Board {
 
         @Override
         public boolean equals(Object obj) {
-            return this.hashCode() == obj.hashCode();
+            if (obj instanceof StoneChain)
+                return this.hashCode() == obj.hashCode();
+            return false;
         }
 
         void makeStoneChainFromIntersection(Intersection intersection) {
