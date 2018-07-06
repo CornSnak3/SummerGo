@@ -1,13 +1,14 @@
 package core;
 
+/**
+ * Class for intersection. Stores intersection coordinates and current state
+ */
 public class Intersection {
-    private final Board board;
     private final int x, y;
-    // -1 for BLACK, 0 for EMPTY, 1 for WHITE
+    // Representation of intersection state (-1 for Black, 0 for Empty, 1 for White)
     private int state;
 
-    public Intersection(Board board, int x, int y) {
-        this.board = board;
+    public Intersection(int x, int y) {
         this.x = x;
         this.y = y;
         this.state = 0;
@@ -35,6 +36,13 @@ public class Intersection {
     public int hashCode() {
         final int prime = 31;
         return prime * (prime * x) + y;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (!(obj instanceof Intersection))
+            return false;
+        return (this.hashCode() == obj.hashCode());
     }
 
     @Override

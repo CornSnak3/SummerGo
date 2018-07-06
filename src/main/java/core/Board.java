@@ -1,98 +1,135 @@
 package core;
 
+import core.exception.OutOfBoardException;
+import core.exception.UnsupportedFileFormatException;
+
+import java.io.IOException;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Set;
 
 public class Board {
 
     private final MoveHistory moveHistory;
 
-    private Intersection[][] intersections;
     private final int boardSize;
+    private double komi;
+    private Intersection[][] intersections;
 
-    private int passCount;
+    // Necessary for ko rule implementation
+    private StoneChain lastCapturedStone;
 
-    // -1 for BLACK, 0 for EMPTY, 1 for WHITE
+    private boolean wasPreviousMovePass;
+
+    // Represents player that makes move next (-1 for Black, 1 for White)
     private int currentPlayer;
 
+    // Numbers of captured stones
     private int blackCaptures;
     private int whiteCaptures;
 
-    public Board(int boardSize) {
+    public Board(int boardSize, double komi) {
         this.boardSize = boardSize;
+        this.komi = komi;
         this.moveHistory = new MoveHistory(this);
+        this.wasPreviousMovePass = false;
+        this.currentPlayer = -1;
+        this.blackCaptures = this.whiteCaptures = 0;
+
+        // Initialize intersections
         this.intersections = new Intersection[boardSize][boardSize];
         for (int x = 0; x < boardSize; x++)
             for (int y = 0; y < boardSize; y++)
-                intersections[x][y] = new Intersection(this, x, y);
-        this.passCount = 0;
-        this.currentPlayer = -1;
-        this.blackCaptures = this.whiteCaptures = 0;
+                intersections[x][y] = new Intersection(x, y);
     }
 
-    public int getBoardSize() {
-        return boardSize;
-    }
-
+    /**
+     * Make move at (x, y)
+     * @param x first coordinate
+     * @param y second coordinate
+     */
     public void makeMove(int x, int y) {
-
         Intersection intersection = getIntersection(x, y);
+
+        // Check whether intersection is occupied
         if (intersection.getState() != 0)
             return;
 
         Set<Intersection> neighbours = getNeighbours(intersection);
 
+        // Get all adjacent stone chains
         Set<StoneChain> adjacentPlayerStoneChains = new HashSet<>();
         Set<StoneChain> adjacentOpponentStoneChains = new HashSet<>();
         for (Intersection i : neighbours) {
             int state = i.getState();
-            if (state == currentPlayer) {
+            if (state == currentPlayer)
                 adjacentPlayerStoneChains.add(new StoneChain(i));
-            } else if (state == -currentPlayer){
+            else if (state == -currentPlayer)
                 adjacentOpponentStoneChains.add(new StoneChain(i));
-            }
         }
 
+        // Get all opponent chains that die after a move
         Set<StoneChain> deadStoneChains = new HashSet<>();
         for (StoneChain stoneChain : adjacentOpponentStoneChains)
             if (stoneChain.getLibertiesCount() == 1)
                 deadStoneChains.add(stoneChain);
 
-        /**
-         * Suicidal move check.
-         *
-         */
+        // Check whether move is suicidal
         if (deadStoneChains.size() == 0)
             for (StoneChain stoneChain : adjacentPlayerStoneChains)
                 if (stoneChain.getLibertiesCount() == 1)
                    return;
 
-        /**
-         * Now we know that move is legal and we can proceed
-         */
+        // Check whether move is ko repetition
+        if (deadStoneChains.size() == 1) {
+            Iterator<StoneChain> iterator = deadStoneChains.iterator();
+            StoneChain stoneChain = iterator.next();
+            if (stoneChain.equals(lastCapturedStone))
+                return;
+            if (stoneChain.size() == 1)
+                lastCapturedStone = stoneChain;
+        }
 
+        // Remove all dead stones from board
         for (StoneChain stoneChain : deadStoneChains)
             stoneChain.die();
 
+
         intersections[x][y].setState(currentPlayer);
-
         moveHistory.addMove(x, y, currentPlayer, blackCaptures, whiteCaptures);
-
+        wasPreviousMovePass = false;
         changePlayer();
     }
 
-    //TODO pass mechanics
+    /**
+     * Pass
+     */
+    public void makePass() {
+        if (wasPreviousMovePass)
+            gameOver();
+
+        moveHistory.addMove(-1, -1, currentPlayer, blackCaptures, whiteCaptures);
+        changePlayer();
+    }
+
+    //TODO scoring
+    private void gameOver() {
+        Scorer scorer = new Scorer(this);
+        scorer.processScore();
+    }
 
     public void undo() {
-        var boardState = moveHistory.undo();
-        proceedMoveHistory(boardState);
+        proceedMoveHistory(moveHistory.undo());
     }
 
     public void redo() {
-        var boardState = moveHistory.redo();
-        proceedMoveHistory(boardState);
+        proceedMoveHistory(moveHistory.redo());
     }
 
+    /**
+     * Utility function for undo/redo mechanics
+     * @param boardState board state retrieved from undo() or redo() method
+     */
     private void proceedMoveHistory(int[][] boardState) {
         if (boardState != null) {
             Move move = moveHistory.getCurrentMove();
@@ -113,16 +150,27 @@ public class Board {
         return (x > 0 || y > 0 || x < boardSize || y < boardSize);
     }
 
+    /**
+     * Get intersection for the given coordinates
+     * @param x
+     * @param y
+     * @return Intersection corresponding to coordinates (x, y)
+     */
     public Intersection getIntersection(int x, int y) {
         if (!isOnBoard(x, y))
-            throw new IllegalArgumentException("Out of board");
+            throw new OutOfBoardException("Coordinate (" + x + ", " + y +") is out of board");
         return intersections[x][y];
     }
 
-    Set<Intersection> getNeighbours(Intersection i) {
+    /**
+     * Get neighbouring intersections for given intersection
+     * @param intersection
+     * @return Set of neighbouring intersectons
+     */
+    Set<Intersection> getNeighbours(Intersection intersection) {
         Set<Intersection> neighbours = new HashSet<>();
-        int x = i.getX();
-        int y = i.getY();
+        int x = intersection.getX();
+        int y = intersection.getY();
         if (x > 0)
             neighbours.add(intersections[x - 1][y]);
         if (x < boardSize - 1)
@@ -135,30 +183,40 @@ public class Board {
         return neighbours;
     }
 
-    @Override
-    public String toString() {
-        StringBuilder sb = new StringBuilder();
-        sb.append("Black: ").append(blackCaptures).append("\tWhite: ").append(whiteCaptures).append('\n');
-        sb.append("  ");
-        for (int i = 0; i < boardSize; i++)
-            sb.append(i).append(' ');
-        sb.append('\n');
-        for (int y = 0; y < boardSize; y++) {
-            sb.append(y).append(' ');
-            for (int x = 0; x < boardSize; x++) {
-                sb.append(getIntersection(x, y)).append(' ');
-            }
-            sb.append('\n');
-        }
-        return sb.toString();
+    public double getKomi() {
+        return komi;
     }
 
     public Intersection[][] getIntersections() {
         return intersections;
     }
 
+    public int getBoardSize() {
+        return boardSize;
+    }
+
     /**
-     * Class representing a stone chain. Used in on-the-fly move calculation.
+     * Save current game in file
+     * @param filename file name
+     * @throws IOException
+     */
+    public void save(String filename) throws IOException {
+        moveHistory.saveGame(filename);
+    }
+
+    /**
+     * Get Board object which represents position and move sequence from file
+     * @param filename file name
+     * @return Board object
+     * @throws IOException
+     * @throws UnsupportedFileFormatException If file is invalid or contains illegal positions
+     */
+    public static Board load(String filename) throws IOException, UnsupportedFileFormatException {
+        return MoveHistory.loadGame(filename);
+    }
+
+    /**
+     * Class for stone chain. Used to calculate dead stones on-the-fly
      *
      */
     private class StoneChain {
@@ -182,7 +240,7 @@ public class Board {
         @Override
         public boolean equals(Object obj) {
             if (obj instanceof StoneChain)
-                return this.hashCode() == obj.hashCode();
+                return (this.hashCode() == obj.hashCode());
             return false;
         }
 
@@ -216,6 +274,30 @@ public class Board {
                     whiteCaptures++;
             }
         }
+
+        int size() {
+            return this.stones.size();
+        }
+
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Black: ").append(blackCaptures).append("   White: ").append(whiteCaptures).append('\n');
+        sb.append("  ");
+        for (int i = 0; i < boardSize; i++)
+            sb.append(i).append(' ');
+        sb.append('\n');
+        for (int y = 0; y < boardSize; y++) {
+            sb.append(y).append(' ');
+            for (int x = 0; x < boardSize; x++) {
+                sb.append(getIntersection(x, y)).append(' ');
+            }
+            sb.append('\n');
+        }
+        sb.append("Move number: ").append(moveHistory.getMoveNumber()).append('\n');
+        return sb.toString();
     }
 
 }

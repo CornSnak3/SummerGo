@@ -6,11 +6,8 @@
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
-        <module name="Summer Go" />
+        <module name="SummerGo" />
       </profile>
     </annotationProcessing>
-    <bytecodeTargetLevel>
-      <module name="Summer Go" target="10" />
-    </bytecodeTargetLevel>
   </component>
 </project>
