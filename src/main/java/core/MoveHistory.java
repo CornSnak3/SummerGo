@@ -54,8 +54,8 @@ public class MoveHistory {
         return currentMove;
     }
 
-    public void saveGame(String filename) throws IOException {
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(filename))) {
+    public void saveGame(File file) throws IOException {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
             StringBuilder sb = new StringBuilder();
             // Game conditions
             sb.append(board.getBoardSize()).append(',').append(board.getKomi()).append('\n');
@@ -66,8 +66,8 @@ public class MoveHistory {
         }
     }
 
-    public static Board loadGame(String filename) throws UnsupportedFileFormatException, IOException {
-        try (BufferedReader reader = new BufferedReader(new FileReader(filename))) {
+    public static Board loadGame(File file) throws UnsupportedFileFormatException, IOException {
+        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
             String[] gameConditions = reader.readLine().split(",");
             try {
                 // Reading game conditions: board size and komi
@@ -81,7 +81,7 @@ public class MoveHistory {
                     String[] temp = scanner.next().split(",");
                     // Checks if both coordinates are present
                     if (temp.length != 2)
-                        throw new UnsupportedFileFormatException(filename);
+                        throw new UnsupportedFileFormatException(file.getName());
                     int x = Integer.parseInt(temp[0]);
                     int y = Integer.parseInt(temp[1]);
                     if (x == -1 && y == -1)
@@ -90,9 +90,9 @@ public class MoveHistory {
                 }
                 return board;
             } catch (UnsupportedFileFormatException | NumberFormatException exc) {
-                throw new UnsupportedFileFormatException("Save file " + filename + " is broken");
+                throw new UnsupportedFileFormatException("Save file " + file.getName() + " is broken");
             } catch (OutOfBoardException exc) {
-                throw new UnsupportedFileFormatException("Save file " + filename + " contains illegal coordinates");
+                throw new UnsupportedFileFormatException("Save file " + file.getName() + " contains illegal coordinates");
             }
         }
     }

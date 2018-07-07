@@ -3,6 +3,7 @@ package core;
 import core.exception.OutOfBoardException;
 import core.exception.UnsupportedFileFormatException;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -20,6 +21,7 @@ public class Board {
     private StoneChain lastCapturedStone;
 
     private boolean wasPreviousMovePass;
+    private boolean isGameOver;
 
     // Represents player that makes move next (-1 for Black, 1 for White)
     private int currentPlayer;
@@ -33,6 +35,7 @@ public class Board {
         this.komi = komi;
         this.moveHistory = new MoveHistory(this);
         this.wasPreviousMovePass = false;
+        this.isGameOver = false;
         this.currentPlayer = -1;
         this.blackCaptures = this.whiteCaptures = 0;
 
@@ -48,12 +51,15 @@ public class Board {
      * @param x first coordinate
      * @param y second coordinate
      */
-    public void makeMove(int x, int y) {
+    public boolean makeMove(int x, int y) {
+        if (isGameOver)
+            return false;
+
         Intersection intersection = getIntersection(x, y);
 
         // Check whether intersection is occupied
         if (intersection.getState() != 0)
-            return;
+            return false;
 
         Set<Intersection> neighbours = getNeighbours(intersection);
 
@@ -78,14 +84,14 @@ public class Board {
         if (deadStoneChains.size() == 0)
             for (StoneChain stoneChain : adjacentPlayerStoneChains)
                 if (stoneChain.getLibertiesCount() == 1)
-                   return;
+                   return false;
 
         // Check whether move is ko repetition
         if (deadStoneChains.size() == 1) {
             Iterator<StoneChain> iterator = deadStoneChains.iterator();
             StoneChain stoneChain = iterator.next();
             if (stoneChain.equals(lastCapturedStone))
-                return;
+                return false;
             if (stoneChain.size() == 1)
                 lastCapturedStone = stoneChain;
         }
@@ -99,6 +105,7 @@ public class Board {
         moveHistory.addMove(x, y, currentPlayer, blackCaptures, whiteCaptures);
         wasPreviousMovePass = false;
         changePlayer();
+        return true;
     }
 
     /**
@@ -114,8 +121,11 @@ public class Board {
 
     //TODO scoring
     private void gameOver() {
-        Scorer scorer = new Scorer(this);
+        isGameOver = true;
+        Scorer scorer = new Scorer();
         scorer.processScore();
+        String winner = (scorer.blackPoints > scorer.whitePoints) ? "BLACK" : "WHITE";
+        System.out.println("White points: " + scorer.whitePoints + "\tBlack points: " + scorer.blackPoints + "\nWinner is " + winner);
     }
 
     public void undo() {
@@ -197,22 +207,22 @@ public class Board {
 
     /**
      * Save current game in file
-     * @param filename file name
+     * @param file file name
      * @throws IOException
      */
-    public void save(String filename) throws IOException {
-        moveHistory.saveGame(filename);
+    public void saveGame(File file) throws IOException {
+        moveHistory.saveGame(file);
     }
 
     /**
      * Get Board object which represents position and move sequence from file
-     * @param filename file name
+     * @param file file name
      * @return Board object
      * @throws IOException
      * @throws UnsupportedFileFormatException If file is invalid or contains illegal positions
      */
-    public static Board load(String filename) throws IOException, UnsupportedFileFormatException {
-        return MoveHistory.loadGame(filename);
+    public static Board loadGame(File file) throws IOException, UnsupportedFileFormatException {
+        return MoveHistory.loadGame(file);
     }
 
     /**
@@ -222,10 +232,12 @@ public class Board {
     private class StoneChain {
 
         Set<Intersection> stones;
+        int player;
 
         StoneChain(Intersection intersection) {
             this.stones = new HashSet<>();
             this.stones.add(intersection);
+            this.player = intersection.getState();
             makeStoneChainFromIntersection(intersection);
         }
 
@@ -256,13 +268,13 @@ public class Board {
         }
 
         int getLibertiesCount() {
-            Set<Intersection> liberties = new HashSet<>();
+            int liberties = 0;
             for (Intersection i : stones)
                 for (Intersection j : getNeighbours(i))
                     if (j.getState() == 0)
-                        liberties.add(j);
+                        liberties++;
 
-            return liberties.size();
+            return liberties;
         }
 
         void die() {
@@ -279,6 +291,60 @@ public class Board {
             return this.stones.size();
         }
 
+    }
+
+    /**
+     * We assume that all dead stones are marked correctly
+     */
+    private class Scorer {
+        Set<StoneChain> blackStoneChains;
+        Set<StoneChain> whiteStoneChains;
+        Set<StoneChain> emptyRegions;
+        double whitePoints, blackPoints;
+
+        Scorer() {
+            this.blackStoneChains = new HashSet<>();
+            this.whiteStoneChains = new HashSet<>();
+            this.emptyRegions = new HashSet<>();
+            for (int x = 0; x < boardSize; x++) {
+                for (int y = 0; y < boardSize; y++) {
+                    Intersection intersection = getIntersection(x, y);
+                    switch (intersection.getState()) {
+                        case 0:
+                            emptyRegions.add(new StoneChain(intersection));
+                            break;
+                        case -1:
+                            blackStoneChains.add(new StoneChain(intersection));
+                            break;
+                        case 1:
+                            whiteStoneChains.add(new StoneChain(intersection));
+                            break;
+                    }
+                }
+            }
+        }
+
+        void processScore() {
+            for (StoneChain emptyRegion : emptyRegions) {
+                int owner = getOwnerOfARegion(emptyRegion);
+                if (owner == -1)
+                    blackPoints += emptyRegion.size();
+                else if (owner == 1)
+                    whitePoints += emptyRegion.size();
+            }
+            whitePoints += komi;
+            blackPoints += blackCaptures;
+            whitePoints += whiteCaptures;
+        }
+
+        int getOwnerOfARegion(StoneChain emptyRegion) {
+            int owner = 0;
+            for (Intersection intersection : emptyRegion.stones)
+                for (Intersection i : getNeighbours(intersection))
+                    if ((owner = i.getState()) != 0)
+                        return owner;
+            return owner;
+        }
     }
 
     @Override
