@@ -14,7 +14,7 @@ public class Sprite {
     private static final ImageIcon p2 = new ImageIcon(new ImageIcon("sprites/p2.png").getImage().getScaledInstance(TOKEN_INITIAL_SIZE, TOKEN_INITIAL_SIZE, Image.SCALE_FAST));
 
     public static ImageIcon merge(ArrayList<ImageIcon> images) {
-        ArrayList<Float> transparency = new ArrayList<Float>();
+        ArrayList<Float> transparency = new ArrayList<>();
 
         for (ImageIcon i : images) {
             transparency.add(1.0f);
@@ -54,6 +54,6 @@ public class Sprite {
     public static ImageIcon getIcon(int player) {
         if (player == 0)
             return grid;
-        return merge(new ArrayList<ImageIcon>(Arrays.asList(background, grid, (player == -1) ? p1 : p2)));
+        return merge(new ArrayList<>(Arrays.asList(background, grid, (player == -1) ? p1 : p2)));
     }
 }

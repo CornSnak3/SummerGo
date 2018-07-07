@@ -107,7 +107,7 @@ public class GUI extends JFrame {
                     this.board.saveGame(file);
                 } catch (IOException exc) {
                     JOptionPane.showMessageDialog(null,
-                            "Problem saving to file: </b>" + file.getName() + "</b>",
+                            "<html>Problem saving to file: </b>" + file.getName() + "</b></html>",
                             "Saving error",
                             JOptionPane.ERROR_MESSAGE);
                 }
@@ -126,12 +126,12 @@ public class GUI extends JFrame {
                     newGame(Board.loadGame(file));
                 } catch (IOException exc) {
                     JOptionPane.showMessageDialog(null,
-                            "Can't open file <b>" + file.getName() + "</b>",
+                            "<html>Can't open file <b>" + exc.getMessage() + "</b></html>",
                             "Can't open file",
                             JOptionPane.ERROR_MESSAGE);
                 } catch (UnsupportedFileFormatException exc) {
                     JOptionPane.showMessageDialog(null,
-                            "File <b>" + file.getName() + "</b> has invalid format",
+                            "<html>File <b>" + exc.getMessage() + "</b> has invalid format</html>",
                             "Invalid file",
                             JOptionPane.ERROR_MESSAGE);
                 }

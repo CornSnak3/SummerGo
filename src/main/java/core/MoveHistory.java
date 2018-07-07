@@ -59,8 +59,8 @@ public class MoveHistory {
             StringBuilder sb = new StringBuilder();
             // Game conditions
             sb.append(board.getBoardSize()).append(',').append(board.getKomi()).append('\n');
-            for (int i = 0; i < precedingMoves.size(); i++) {
-                sb.append(precedingMoves.get(i).getX()).append(',').append(precedingMoves.get(i).getY()).append(';');
+            for (Move precedingMove : precedingMoves) {
+                sb.append(precedingMove.getX()).append(',').append(precedingMove.getY()).append(';');
             }
             writer.write(sb.toString());
         }
@@ -86,7 +86,8 @@ public class MoveHistory {
                     int y = Integer.parseInt(temp[1]);
                     if (x == -1 && y == -1)
                         board.makePass();
-                    board.makeMove(x, y);
+                    if (board.makeMove(x, y) == false)
+                        throw new UnsupportedFileFormatException(file.getName());
                 }
                 return board;
             } catch (UnsupportedFileFormatException | NumberFormatException exc) {
