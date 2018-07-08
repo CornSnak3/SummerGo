@@ -7,11 +7,20 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 public class Sprite {
-    public static final int TOKEN_INITIAL_SIZE = 35;
+    public static final int TOKEN_INITIAL_SIZE = 706 / 9;
     private static final ImageIcon background = new ImageIcon(new ImageIcon("sprites/background.png").getImage().getScaledInstance(TOKEN_INITIAL_SIZE, TOKEN_INITIAL_SIZE, Image.SCALE_FAST));
-    private static final ImageIcon grid = new ImageIcon(new ImageIcon("sprites/grid.png").getImage().getScaledInstance(TOKEN_INITIAL_SIZE, TOKEN_INITIAL_SIZE, Image.SCALE_FAST));
-    private static final ImageIcon p1 = new ImageIcon(new ImageIcon("sprites/p1.png").getImage().getScaledInstance(TOKEN_INITIAL_SIZE, TOKEN_INITIAL_SIZE, Image.SCALE_FAST));
-    private static final ImageIcon p2 = new ImageIcon(new ImageIcon("sprites/p2.png").getImage().getScaledInstance(TOKEN_INITIAL_SIZE, TOKEN_INITIAL_SIZE, Image.SCALE_FAST));
+    public static final ImageIcon p1 = new ImageIcon(new ImageIcon("sprites/p1.png").getImage().getScaledInstance(TOKEN_INITIAL_SIZE, TOKEN_INITIAL_SIZE, Image.SCALE_FAST));
+    public static final ImageIcon p2 = new ImageIcon(new ImageIcon("sprites/p2.png").getImage().getScaledInstance(TOKEN_INITIAL_SIZE, TOKEN_INITIAL_SIZE, Image.SCALE_FAST));
+    private static final ImageIcon grid_c = new ImageIcon(new ImageIcon("sprites/grid_c.png").getImage().getScaledInstance(TOKEN_INITIAL_SIZE, TOKEN_INITIAL_SIZE, Image.SCALE_FAST));
+    private static final ImageIcon grid_tl = new ImageIcon(new ImageIcon("sprites/grid_tl.png").getImage().getScaledInstance(TOKEN_INITIAL_SIZE, TOKEN_INITIAL_SIZE, Image.SCALE_FAST));
+    private static final ImageIcon grid_tr = new ImageIcon(new ImageIcon("sprites/grid_tr.png").getImage().getScaledInstance(TOKEN_INITIAL_SIZE, TOKEN_INITIAL_SIZE, Image.SCALE_FAST));
+    private static final ImageIcon grid_bl = new ImageIcon(new ImageIcon("sprites/grid_bl.png").getImage().getScaledInstance(TOKEN_INITIAL_SIZE, TOKEN_INITIAL_SIZE, Image.SCALE_FAST));
+    private static final ImageIcon grid_br = new ImageIcon(new ImageIcon("sprites/grid_br.png").getImage().getScaledInstance(TOKEN_INITIAL_SIZE, TOKEN_INITIAL_SIZE, Image.SCALE_FAST));
+    private static final ImageIcon grid_ts = new ImageIcon(new ImageIcon("sprites/grid_ts.png").getImage().getScaledInstance(TOKEN_INITIAL_SIZE, TOKEN_INITIAL_SIZE, Image.SCALE_FAST));
+    private static final ImageIcon grid_bs = new ImageIcon(new ImageIcon("sprites/grid_bs.png").getImage().getScaledInstance(TOKEN_INITIAL_SIZE, TOKEN_INITIAL_SIZE, Image.SCALE_FAST));
+    private static final ImageIcon grid_rs = new ImageIcon(new ImageIcon("sprites/grid_rs.png").getImage().getScaledInstance(TOKEN_INITIAL_SIZE, TOKEN_INITIAL_SIZE, Image.SCALE_FAST));
+    private static final ImageIcon grid_ls = new ImageIcon(new ImageIcon("sprites/grid_ls.png").getImage().getScaledInstance(TOKEN_INITIAL_SIZE, TOKEN_INITIAL_SIZE, Image.SCALE_FAST));
+    private static final ImageIcon illegal = new ImageIcon(new ImageIcon("sprites/illegal.png").getImage().getScaledInstance(TOKEN_INITIAL_SIZE, TOKEN_INITIAL_SIZE, Image.SCALE_FAST));
 
     public static ImageIcon merge(ArrayList<ImageIcon> images) {
         ArrayList<Float> transparency = new ArrayList<>();
@@ -51,9 +60,34 @@ public class Sprite {
         return new ImageIcon(dest);
     }
 
-    public static ImageIcon getIcon(int player) {
+    public static ImageIcon getGridIcon(int x, int y, int boardSize) {
+        if (x == 0) {
+            if (y == 0)
+                return grid_bl;
+            else if (y == boardSize - 1)
+                return grid_br;
+            else
+                return grid_bs;
+        } else if (x == boardSize - 1) {
+            if (y == 0)
+                return grid_tl;
+            else if (y == boardSize - 1)
+                return grid_tr;
+            else
+                return grid_ts;
+        } else {
+            if (y == 0)
+                return grid_ls;
+            else if (y == boardSize - 1)
+                return grid_rs;
+            else
+                return grid_c;
+        }
+    }
+
+    public static ImageIcon getIcon(int player, int x, int y, int boardSize) {
         if (player == 0)
-            return grid;
-        return merge(new ArrayList<>(Arrays.asList(background, grid, (player == -1) ? p1 : p2)));
+            return merge(new ArrayList<>(Arrays.asList(background, getGridIcon(x, y, boardSize))));
+        return merge(new ArrayList<>(Arrays.asList(background, getGridIcon(x, y, boardSize), (player == -1) ? p1 : p2)));
     }
 }

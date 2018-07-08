@@ -205,6 +205,10 @@ public class Board {
         return boardSize;
     }
 
+    public int getCurrentPlayer() {
+        return currentPlayer;
+    }
+
     /**
      * Save current game in file
      * @param file file name

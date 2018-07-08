@@ -1,20 +1,31 @@
 package gui;
 
 import core.Board;
-import core.MoveHistory;
 import core.exception.UnsupportedFileFormatException;
 
 import javax.swing.*;
+import javax.swing.border.BevelBorder;
+import javax.swing.border.Border;
+import javax.swing.border.EmptyBorder;
 import java.awt.*;
-import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.io.File;
 import java.io.IOException;
 
-import static java.lang.System.exit;
-
 public class GUI extends JFrame {
+
+    public final int TOKEN_INITIAL_SIZE = 35;
+    public final int MENU_SIZE = 42;
+    public final int CONTROLLER_PANEL_WIDTH = 610;
+    public final int BOARD_PANEL_DIMENSION= 706;
+
+    private final Dimension BOARD_PANEL = new Dimension(BOARD_PANEL_DIMENSION, BOARD_PANEL_DIMENSION);
+
+    private JPanel jBoard;
+    private JPanel jStartScreenPanel;
+
+    private JPanel jUtility;
 
     private JMenuBar jMenuBar;
     private JMenu jMenuGame;
@@ -27,47 +38,63 @@ public class GUI extends JFrame {
     private JMenuItem jGameLoad;
     private JMenuItem jGameExit;
 
+    private final int WINDOW_WIDTH = 1366;
+    private final int WINDOW_HEIGHT = 768 - MENU_SIZE;
+
     private Board board;
     private boolean isGameGoing;
 
     private JButton[][] jIntersections;
 
     public GUI() {
-        board = null;
+        this.setLayout(new GridBagLayout());
         isGameGoing = false;
         initMenu();
-        setJMenuBar(jMenuBar);
         initWindow();
-        drawBoard();
+        showStartScreen();
         pack();
     }
 
     void initWindow() {
         setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
         setTitle("Summer Go");
-        setPreferredSize(new Dimension(800, 600));
         setResizable(false);
         setVisible(true);
     }
 
-    void initMenu() {
-        jMenuBar = new JMenuBar();
+    void showStartScreen() {
+        GridLayout startScreenLayout = new GridLayout(3, 1);
+        
+        jStartScreenPanel = new JPanel(startScreenLayout);
 
-        jMenuGame = new JMenu("Game");
-        jMenuHelp = new JMenu("Help");
-        jMenuAbout = new JMenu("About");
+        Dimension startScreenButtonDimension = new Dimension(100, 50);
 
-        // Game menu
-        jGameNew = new JMenuItem("New Game");
-        jGameNew.setAccelerator(KeyStroke.getKeyStroke("control N"));
+        JButton jNewGameButton = new JButton("New Game");
+        jNewGameButton.addActionListener(getNewGameListener());
+        jNewGameButton.setMinimumSize(startScreenButtonDimension);
+        jStartScreenPanel.add(jNewGameButton);
 
-        jGameNew.addActionListener(actionEvent -> {
+        JButton jLoadGameButton = new JButton("Load Game");
+        jLoadGameButton.addActionListener(getLoadGameListener());
+        jLoadGameButton.setMinimumSize(startScreenButtonDimension);
+        jStartScreenPanel.add(jLoadGameButton);
+
+        JButton jExitGameButton = new JButton("Exit Game");
+        jExitGameButton.addActionListener(getExitGameListener());
+        jExitGameButton.setMinimumSize(startScreenButtonDimension);
+        jStartScreenPanel.add(jExitGameButton);
+
+        getContentPane().add(jStartScreenPanel);
+    }
+
+    private ActionListener getNewGameListener() {
+        return (actionEvent -> {
             JPanel inputPanel = new JPanel(new GridLayout(2, 2));
 
             // Board size
             JLabel boardSizeLabel = new JLabel("Size: ", JLabel.CENTER);
             inputPanel.add(boardSizeLabel);
-            JComboBox boardSizeComboBox = new JComboBox();
+            JComboBox<String> boardSizeComboBox = new JComboBox<>();
             boardSizeComboBox.addItem("9x9");
             boardSizeComboBox.addItem("13x13");
             boardSizeComboBox.addItem("19x19");
@@ -85,38 +112,16 @@ public class GUI extends JFrame {
                     JOptionPane.OK_CANCEL_OPTION,
                     JOptionPane.PLAIN_MESSAGE);
 
-            if (boardSizeChoose == 1) {
+            if (boardSizeChoose == JOptionPane.OK_OPTION) {
                 int boardSize = Integer.parseInt(((String) boardSizeComboBox.getSelectedItem()).split("x")[0]);
                 double komi = Double.parseDouble(komiSizeTextField.getText());
-                newGame(boardSize);
+                newGame(boardSize, komi);
             }
-        });
+            });
+    }
 
-        jGameSave = new JMenuItem("Save Game");
-        jGameSave.setAccelerator(KeyStroke.getKeyStroke("control S"));
-        jGameSave.addActionListener(actionEvent -> {
-            if (this.board == null)
-                return;
-            JFileChooser fileChooser = new JFileChooser();
-            fileChooser.setDialogTitle("Choose a directory to save game: ");
-            fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-            int returnValue = fileChooser.showSaveDialog(this);
-            if (returnValue == JFileChooser.APPROVE_OPTION) {
-                File file = fileChooser.getSelectedFile();
-                try {
-                    this.board.saveGame(file);
-                } catch (IOException exc) {
-                    JOptionPane.showMessageDialog(null,
-                            "<html>Problem saving to file: </b>" + file.getName() + "</b></html>",
-                            "Saving error",
-                            JOptionPane.ERROR_MESSAGE);
-                }
-            }
-        });
-
-        jGameLoad = new JMenuItem("Load Game");
-        jGameLoad.setAccelerator(KeyStroke.getKeyStroke("control O"));
-        jGameLoad.addActionListener(actionEvent -> {
+    private ActionListener getLoadGameListener() {
+        return (actionEvent -> {
             JFileChooser fileChooser = new JFileChooser();
             fileChooser.setDialogTitle("Choose a file containing a game: ");
             int returnValue = fileChooser.showOpenDialog(this);
@@ -137,10 +142,10 @@ public class GUI extends JFrame {
                 }
             }
         });
+    }
 
-        jGameExit = new JMenuItem("Exit");
-        jGameExit.setAccelerator(KeyStroke.getKeyStroke("control Q"));
-        jGameExit.addActionListener(actionEvent -> {
+    private ActionListener getExitGameListener() {
+        return (actionEvent -> {
             String[] options = { "Yes", "No" };
             int returnValue = JOptionPane.showOptionDialog(this,
                     "<html>Are you sure you want to exit?<br>All unsaved progress will be lost</html>",
@@ -153,6 +158,51 @@ public class GUI extends JFrame {
             if (returnValue == 0)
                 System.exit(0);
         });
+    }
+
+    void initMenu() {
+        jMenuBar = new JMenuBar();
+
+        jMenuGame = new JMenu("Game");
+        jMenuHelp = new JMenu("Help");
+        jMenuAbout = new JMenu("About");
+
+        // Game menu
+        jGameNew = new JMenuItem("New Game");
+        jGameNew.setAccelerator(KeyStroke.getKeyStroke("control N"));
+
+        jGameNew.addActionListener(getNewGameListener());
+
+        jGameSave = new JMenuItem("Save Game");
+        jGameSave.setAccelerator(KeyStroke.getKeyStroke("control S"));
+        jGameSave.addActionListener(actionEvent -> {
+            if (this.board == null)
+                return;
+            JFileChooser fileChooser = new JFileChooser();
+            fileChooser.setDialogTitle("Choose a directory to save game: ");
+            // TODO
+            // fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+            int returnValue = fileChooser.showSaveDialog(this);
+            if (returnValue == JFileChooser.APPROVE_OPTION) {
+                File file = fileChooser.getSelectedFile();
+                try {
+                    this.board.saveGame(file);
+                } catch (IOException exc) {
+                    JOptionPane.showMessageDialog(null,
+                            "<html>Problem saving to file: </b>" + file.getName() + "</b></html>",
+                            "Saving error",
+                            JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
+
+        jGameLoad = new JMenuItem("Load Game");
+        jGameLoad.setAccelerator(KeyStroke.getKeyStroke("control O"));
+        jGameLoad.addActionListener(getLoadGameListener());
+
+        jGameExit = new JMenuItem("Exit");
+        jGameExit.setAccelerator(KeyStroke.getKeyStroke("control Q"));
+        jGameExit.addActionListener(getExitGameListener());
 
         jMenuGame.add(jGameNew);
         jMenuGame.addSeparator();
@@ -176,38 +226,121 @@ public class GUI extends JFrame {
         jMenuBar.add(jMenuGame);
         jMenuBar.add(jMenuHelp);
         jMenuBar.add(jMenuAbout);
+
+        // Setting the menu bar
+        this.setJMenuBar(jMenuBar);
     }
 
-    void drawBoard() {
-        if (board == null)
-            return;
-        int boardSize = board.getBoardSize();
+    void initBoard() {
+        jBoard = new JPanel(new GridBagLayout());
+        if (board != null) {
+            int boardSize = board.getBoardSize();
+            JPanel jInnerBoard = new JPanel(new GridLayout(boardSize, boardSize));
+            jIntersections = new JButton[boardSize][boardSize];
+            for (int x = 0; x < boardSize; x++) {
+                for (int y = 0; y < boardSize; y++) {
+                    jIntersections[x][y] = new JButton(Sprite.getIcon(0, x, y, boardSize));
+                    jIntersections[x][y].setEnabled(true);
+                    jIntersections[x][y].setBorder(BorderFactory.createEmptyBorder());
+                    jIntersections[x][y].setContentAreaFilled(false);
+                    jIntersections[x][y].setMinimumSize(new Dimension(BOARD_PANEL_DIMENSION / boardSize, BOARD_PANEL_DIMENSION / boardSize));
+                    jIntersections[x][y].setPreferredSize(new Dimension(BOARD_PANEL_DIMENSION / boardSize, BOARD_PANEL_DIMENSION / boardSize));
+                    jIntersections[x][y].setMaximumSize(new Dimension(BOARD_PANEL_DIMENSION / boardSize, BOARD_PANEL_DIMENSION / boardSize));
 
-        JPanel jBoard = new JPanel(new GridLayout(boardSize, boardSize));
-        jIntersections = new JButton[boardSize][boardSize];
-        for (int x = 0; x < boardSize; x++) {
-            for (int y = 0; y < boardSize; y++) {
-                jIntersections[x][y] = new JButton(new ImageIcon("sprites/grid.png"));
-                jIntersections[x][y].setEnabled(true);
-                jIntersections[x][y].setBorder(BorderFactory.createEmptyBorder());
-                jIntersections[x][y].setContentAreaFilled(false);
+                    int finalX = x;
+                    int finalY = y;
+                    jIntersections[x][y].addActionListener(actionPerformed -> {
+                        if (!isGameGoing)
+                            return;
+                        if (board.makeMove(finalX, finalY)) {
+                            updateBoard();
+                        }
+                    });
+                    jInnerBoard.add(jIntersections[x][y], x, y);
+                }
+            }
+
+            jBoard.add(jInnerBoard);
+
+            jBoard.setMinimumSize(BOARD_PANEL);
+            jBoard.setPreferredSize(BOARD_PANEL);
+            jBoard.setMaximumSize(BOARD_PANEL);
+
+            GridBagConstraints boardGridBagConstraints = new GridBagConstraints();
+            boardGridBagConstraints.gridx = 0;
+            boardGridBagConstraints.gridy = 0;
+            boardGridBagConstraints.weightx = BOARD_PANEL_DIMENSION / this.getWidth();
+            boardGridBagConstraints.weighty = BOARD_PANEL_DIMENSION / this.getHeight();
+            boardGridBagConstraints.anchor = GridBagConstraints.WEST;
+            boardGridBagConstraints.fill = GridBagConstraints.NONE;
+
+            getContentPane().add(jBoard, boardGridBagConstraints);
+        }
+    }
+
+    void initUtility() {
+
+        JPanel jControlsPanel = new JPanel(new GridLayout(2, 1, 10, 20));
+        jControlsPanel.setPreferredSize(new Dimension(CONTROLLER_PANEL_WIDTH, BOARD_PANEL_DIMENSION));
+        // Players info and avatars
+        JPanel jPlayerInfo = new JPanel(new GridLayout(2, 3));
+        JLabel blackPlayer = new JLabel( new ImageIcon("sprites/black_avatar.png"));
+        JLabel whitePlayer = new JLabel( new ImageIcon("sprites/white_avatar.png"));
+        jPlayerInfo.add(blackPlayer);
+        jPlayerInfo.add(whitePlayer);
+        // Captured stones
+        JLabel blackPlayerCaptures = new JLabel("0", Sprite.p2, JLabel.CENTER);
+        JLabel whitePlayerCaptures = new JLabel("0", Sprite.p1, JLabel.CENTER);
+        jPlayerInfo.add(blackPlayerCaptures);
+        jPlayerInfo.add(whitePlayerCaptures);
+
+        jControlsPanel.add(jPlayerInfo);
+
+        //Console
+        JTextPane jEventConsole = new JTextPane();
+
+        jControlsPanel.add(jEventConsole);
+        jControlsPanel.setBorder(new BevelBorder(1));
+
+        GridBagConstraints utilityGridBagConstraints = new GridBagConstraints();
+        utilityGridBagConstraints.gridx = 1;
+        utilityGridBagConstraints.gridy = 0;
+        utilityGridBagConstraints.weightx = CONTROLLER_PANEL_WIDTH / this.getWidth();
+        utilityGridBagConstraints.weighty = BOARD_PANEL_DIMENSION / this.getHeight();
+        utilityGridBagConstraints.anchor = GridBagConstraints.EAST;
+
+        jUtility = jControlsPanel;
+
+        getContentPane().add(jUtility, utilityGridBagConstraints);
+    }
+
+    void updateBoard() {
+        for (int x = 0; x < board.getBoardSize(); x++) {
+            for (int y = 0; y < board.getBoardSize(); y++) {
+                jIntersections[x][y].setIcon(Sprite.getIcon(board.getIntersection(x, y).getState(), x, y, board.getBoardSize()));
             }
         }
-        getContentPane().add(jBoard, BorderLayout.CENTER);
     }
 
-    void newGame(int boardSize) {
-        double komi = 3.5;
-        if (boardSize == 13) {
-            komi += 2;
-        } else if (boardSize == 19) {
-            komi += 3;
+    void newGame(int boardSize, double komi) {
+        if (isGameGoing) {
+            getContentPane().remove(jBoard);
+            getContentPane().remove(jUtility);
+        } else {
+            getContentPane().remove(jStartScreenPanel);
         }
-
         this.board = new Board(boardSize, komi);
-        drawBoard();
+        this.setSize(new Dimension(1366, 768));
+        this.setLayout(new GridBagLayout());
+        this.isGameGoing = true;
+        initBoard();
+        initUtility();
+        this.add(jBoard);
+        this.add(jUtility);
         revalidate();
         repaint();
+
+
     }
 
     void newGame(Board board) {
