@@ -18,7 +18,7 @@ public class GUI extends JFrame {
     public final int TOKEN_INITIAL_SIZE = 35;
     public final int MENU_SIZE = 42;
     public final int CONTROLLER_PANEL_WIDTH = 610;
-    public final int BOARD_PANEL_DIMENSION= 706;
+    public final int BOARD_PANEL_DIMENSION = 706 - 10;
 
     private final Dimension BOARD_PANEL = new Dimension(BOARD_PANEL_DIMENSION, BOARD_PANEL_DIMENSION);
 
@@ -26,6 +26,8 @@ public class GUI extends JFrame {
     private JPanel jStartScreenPanel;
 
     private JPanel jUtility;
+    JLabel blackPlayerCaptures;
+    JLabel whitePlayerCaptures;
 
     private JMenuBar jMenuBar;
     private JMenu jMenuGame;
@@ -232,10 +234,10 @@ public class GUI extends JFrame {
     }
 
     void initBoard() {
-        jBoard = new JPanel(new GridBagLayout());
+        jBoard = new JPanel();
         if (board != null) {
             int boardSize = board.getBoardSize();
-            JPanel jInnerBoard = new JPanel(new GridLayout(boardSize, boardSize));
+            jBoard.setLayout(new GridLayout(boardSize, boardSize));
             jIntersections = new JButton[boardSize][boardSize];
             for (int x = 0; x < boardSize; x++) {
                 for (int y = 0; y < boardSize; y++) {
@@ -254,64 +256,80 @@ public class GUI extends JFrame {
                             return;
                         if (board.makeMove(finalX, finalY)) {
                             updateBoard();
+                            updateUtility();
                         }
                     });
-                    jInnerBoard.add(jIntersections[x][y], x, y);
+                    jBoard.add(jIntersections[x][y], x, y);
                 }
             }
-
-            jBoard.add(jInnerBoard);
 
             jBoard.setMinimumSize(BOARD_PANEL);
             jBoard.setPreferredSize(BOARD_PANEL);
             jBoard.setMaximumSize(BOARD_PANEL);
+            jBoard.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-            GridBagConstraints boardGridBagConstraints = new GridBagConstraints();
+            /*GridBagConstraints boardGridBagConstraints = new GridBagConstraints();
             boardGridBagConstraints.gridx = 0;
             boardGridBagConstraints.gridy = 0;
             boardGridBagConstraints.weightx = BOARD_PANEL_DIMENSION / this.getWidth();
             boardGridBagConstraints.weighty = BOARD_PANEL_DIMENSION / this.getHeight();
             boardGridBagConstraints.anchor = GridBagConstraints.WEST;
-            boardGridBagConstraints.fill = GridBagConstraints.NONE;
+            boardGridBagConstraints.fill = GridBagConstraints.NONE;*/
 
-            getContentPane().add(jBoard, boardGridBagConstraints);
+            getContentPane().add(jBoard);
         }
     }
 
     void initUtility() {
 
-        JPanel jControlsPanel = new JPanel(new GridLayout(2, 1, 10, 20));
+        JPanel jControlsPanel = new JPanel();
+        BoxLayout utilityLayout = new BoxLayout(jControlsPanel, BoxLayout.Y_AXIS);
+        jControlsPanel.setLayout(utilityLayout);
         jControlsPanel.setPreferredSize(new Dimension(CONTROLLER_PANEL_WIDTH, BOARD_PANEL_DIMENSION));
+
         // Players info and avatars
         JPanel jPlayerInfo = new JPanel(new GridLayout(2, 3));
         JLabel blackPlayer = new JLabel( new ImageIcon("sprites/black_avatar.png"));
         JLabel whitePlayer = new JLabel( new ImageIcon("sprites/white_avatar.png"));
         jPlayerInfo.add(blackPlayer);
         jPlayerInfo.add(whitePlayer);
+
         // Captured stones
-        JLabel blackPlayerCaptures = new JLabel("0", Sprite.p2, JLabel.CENTER);
-        JLabel whitePlayerCaptures = new JLabel("0", Sprite.p1, JLabel.CENTER);
+        blackPlayerCaptures = new JLabel("0", Sprite.p2, JLabel.CENTER);
+        whitePlayerCaptures = new JLabel("0", Sprite.p1, JLabel.CENTER);
         jPlayerInfo.add(blackPlayerCaptures);
         jPlayerInfo.add(whitePlayerCaptures);
 
         jControlsPanel.add(jPlayerInfo);
 
+        JPanel jContols = new JPanel(new FlowLayout());
+        JButton undoButton = new JButton("Undo");
+        JButton redoButton = new JButton("Redo");
+        JButton passButton = new JButton("Pass");
+        jContols.add(undoButton);
+        jContols.add(redoButton);
+        jContols.add(passButton);
+
+        jControlsPanel.add(jContols);
+
         //Console
-        JTextPane jEventConsole = new JTextPane();
+        //JTextPane jEventConsole = new JTextPane();
 
-        jControlsPanel.add(jEventConsole);
-        jControlsPanel.setBorder(new BevelBorder(1));
+        //jControlsPanel.add(jEventConsole);
+        jControlsPanel.setBorder(new BevelBorder(0));
 
-        GridBagConstraints utilityGridBagConstraints = new GridBagConstraints();
+        /*GridBagConstraints utilityGridBagConstraints = new GridBagConstraints();
+        utilityGridBagConstraints.ipadx = 50;
         utilityGridBagConstraints.gridx = 1;
         utilityGridBagConstraints.gridy = 0;
-        utilityGridBagConstraints.weightx = CONTROLLER_PANEL_WIDTH / this.getWidth();
-        utilityGridBagConstraints.weighty = BOARD_PANEL_DIMENSION / this.getHeight();
-        utilityGridBagConstraints.anchor = GridBagConstraints.EAST;
+        utilityGridBagConstraints.fill = GridBagConstraints.BOTH;*/
+        //utilityGridBagConstraints.weightx = CONTROLLER_PANEL_WIDTH / this.getWidth();
+        //utilityGridBagConstraints.weighty = BOARD_PANEL_DIMENSION / this.getHeight();
+        //utilityGridBagConstraints.anchor = GridBagConstraints.FIRST_LINE_END;
 
         jUtility = jControlsPanel;
 
-        getContentPane().add(jUtility, utilityGridBagConstraints);
+        getContentPane().add(jUtility);
     }
 
     void updateBoard() {
@@ -320,6 +338,11 @@ public class GUI extends JFrame {
                 jIntersections[x][y].setIcon(Sprite.getIcon(board.getIntersection(x, y).getState(), x, y, board.getBoardSize()));
             }
         }
+    }
+
+    void updateUtility() {
+        blackPlayerCaptures.setText(String.valueOf(board.getBlackCaptures()));
+        whitePlayerCaptures.setText(String.valueOf(board.getWhiteCaptures()));
     }
 
     void newGame(int boardSize, double komi) {
@@ -331,12 +354,11 @@ public class GUI extends JFrame {
         }
         this.board = new Board(boardSize, komi);
         this.setSize(new Dimension(1366, 768));
-        this.setLayout(new GridBagLayout());
+        this.setLayout(new FlowLayout());
         this.isGameGoing = true;
         initBoard();
+        add(Box.createRigidArea(new Dimension(10, 0)));
         initUtility();
-        this.add(jBoard);
-        this.add(jUtility);
         revalidate();
         repaint();
 

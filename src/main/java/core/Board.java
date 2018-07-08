@@ -66,12 +66,15 @@ public class Board {
         // Get all adjacent stone chains
         Set<StoneChain> adjacentPlayerStoneChains = new HashSet<>();
         Set<StoneChain> adjacentOpponentStoneChains = new HashSet<>();
+        int currentMoveLiberties = 0;
         for (Intersection i : neighbours) {
             int state = i.getState();
             if (state == currentPlayer)
                 adjacentPlayerStoneChains.add(new StoneChain(i));
             else if (state == -currentPlayer)
                 adjacentOpponentStoneChains.add(new StoneChain(i));
+            else
+                currentMoveLiberties++;
         }
 
         // Get all opponent chains that die after a move
@@ -83,17 +86,17 @@ public class Board {
         // Check whether move is suicidal
         if (deadStoneChains.size() == 0)
             for (StoneChain stoneChain : adjacentPlayerStoneChains)
-                if (stoneChain.getLibertiesCount() == 1)
+                if (stoneChain.getLibertiesCount() == 1 && currentMoveLiberties == 0)
                    return false;
 
+        // TODO fix ko mechanics
         // Check whether move is ko repetition
         if (deadStoneChains.size() == 1) {
             Iterator<StoneChain> iterator = deadStoneChains.iterator();
             StoneChain stoneChain = iterator.next();
             if (stoneChain.equals(lastCapturedStone))
                 return false;
-            if (stoneChain.size() == 1)
-                lastCapturedStone = stoneChain;
+            lastCapturedStone = stoneChain;
         }
 
         // Remove all dead stones from board
@@ -209,6 +212,14 @@ public class Board {
         return currentPlayer;
     }
 
+    public int getBlackCaptures() {
+        return blackCaptures;
+    }
+
+    public int getWhiteCaptures() {
+        return whiteCaptures;
+    }
+
     /**
      * Save current game in file
      * @param file file name
@@ -272,13 +283,13 @@ public class Board {
         }
 
         int getLibertiesCount() {
-            int liberties = 0;
+            Set<Intersection> liberties = new HashSet<>();
             for (Intersection i : stones)
                 for (Intersection j : getNeighbours(i))
                     if (j.getState() == 0)
-                        liberties++;
+                        liberties.add(j);
 
-            return liberties;
+            return liberties.size();
         }
 
         void die() {
