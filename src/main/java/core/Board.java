@@ -84,19 +84,28 @@ public class Board {
                 deadStoneChains.add(stoneChain);
 
         // Check whether move is suicidal
-        if (deadStoneChains.size() == 0)
-            for (StoneChain stoneChain : adjacentPlayerStoneChains)
-                if (stoneChain.getLibertiesCount() == 1 && currentMoveLiberties == 0)
-                   return false;
+        if (deadStoneChains.size() == 0 && currentMoveLiberties == 0) {
+            if (adjacentPlayerStoneChains.size() == 0) {
+                return false;
+            } else {
+                int adjacentStoneLiberties = 0;
+                for (StoneChain stoneChain : adjacentPlayerStoneChains)
+                    if (stoneChain.getLibertiesCount() == 1)
+                        adjacentStoneLiberties++;
+                if (adjacentStoneLiberties == adjacentPlayerStoneChains.size())
+                    return false;
+            }
+        }
 
-        // TODO fix ko mechanics
         // Check whether move is ko repetition
         if (deadStoneChains.size() == 1) {
-            Iterator<StoneChain> iterator = deadStoneChains.iterator();
-            StoneChain stoneChain = iterator.next();
+            StoneChain stoneChain = new StoneChain(intersection);
             if (stoneChain.equals(lastCapturedStone))
                 return false;
-            lastCapturedStone = stoneChain;
+            stoneChain = deadStoneChains.iterator().next();
+            lastCapturedStone = (stoneChain.size() == 1) ? stoneChain : null;
+        } else {
+            lastCapturedStone = null;
         }
 
         // Remove all dead stones from board
@@ -266,6 +275,8 @@ public class Board {
 
         @Override
         public boolean equals(Object obj) {
+            if (obj == null)
+                return false;
             if (obj instanceof StoneChain)
                 return (this.hashCode() == obj.hashCode());
             return false;
@@ -273,7 +284,7 @@ public class Board {
 
         void makeStoneChainFromIntersection(Intersection intersection) {
             for (Intersection i : getNeighbours(intersection)) {
-                if (i.getState() == intersection.getState()) {
+                if (i.getState() == intersection.getState() && i.getState() != 0) {
                     if (!stones.contains(i)) {
                         stones.add(i);
                         makeStoneChainFromIntersection(i);
