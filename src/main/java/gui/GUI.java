@@ -5,8 +5,6 @@ import core.exception.UnsupportedFileFormatException;
 
 import javax.swing.*;
 import javax.swing.border.BevelBorder;
-import javax.swing.border.Border;
-import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
@@ -54,36 +52,39 @@ public class GUI extends JFrame {
         initMenu();
         initWindow();
         showStartScreen();
-        pack();
     }
 
     void initWindow() {
         setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
         setTitle("Summer Go");
+        setSize(new Dimension(1366, 768));
         setResizable(false);
         setVisible(true);
     }
 
     void showStartScreen() {
-        GridLayout startScreenLayout = new GridLayout(3, 1);
+        GridLayout startScreenLayout = new GridLayout(3, 1, 0, 50);
         
         jStartScreenPanel = new JPanel(startScreenLayout);
 
-        Dimension startScreenButtonDimension = new Dimension(100, 50);
+        Dimension startScreenButtonDimension = new Dimension(200, 75);
 
         JButton jNewGameButton = new JButton("New Game");
         jNewGameButton.addActionListener(getNewGameListener());
         jNewGameButton.setMinimumSize(startScreenButtonDimension);
+        jNewGameButton.setPreferredSize(startScreenButtonDimension);
         jStartScreenPanel.add(jNewGameButton);
 
         JButton jLoadGameButton = new JButton("Load Game");
         jLoadGameButton.addActionListener(getLoadGameListener());
         jLoadGameButton.setMinimumSize(startScreenButtonDimension);
+        jLoadGameButton.setPreferredSize(startScreenButtonDimension);
         jStartScreenPanel.add(jLoadGameButton);
 
         JButton jExitGameButton = new JButton("Exit Game");
         jExitGameButton.addActionListener(getExitGameListener());
         jExitGameButton.setMinimumSize(startScreenButtonDimension);
+        jExitGameButton.setPreferredSize(startScreenButtonDimension);
         jStartScreenPanel.add(jExitGameButton);
 
         getContentPane().add(jStartScreenPanel);
@@ -117,9 +118,10 @@ public class GUI extends JFrame {
             if (boardSizeChoose == JOptionPane.OK_OPTION) {
                 int boardSize = Integer.parseInt(((String) boardSizeComboBox.getSelectedItem()).split("x")[0]);
                 double komi = Double.parseDouble(komiSizeTextField.getText());
+                this.board = new Board(boardSize, komi);
                 newGame(boardSize, komi);
             }
-            });
+        });
     }
 
     private ActionListener getLoadGameListener() {
@@ -157,7 +159,7 @@ public class GUI extends JFrame {
                     null,
                     options,
                     options[1]);
-            if (returnValue == 0)
+            if (returnValue == JOptionPane.OK_OPTION)
                 System.exit(0);
         });
     }
@@ -304,11 +306,47 @@ public class GUI extends JFrame {
 
         JPanel jContols = new JPanel(new FlowLayout());
         JButton undoButton = new JButton("Undo");
+        undoButton.addActionListener(actionEvent -> {
+            board.undo();
+            updateBoard();
+            updateUtility();
+        });
+
         JButton redoButton = new JButton("Redo");
+        redoButton.addActionListener(actionEvent -> {
+            board.redo();
+            updateBoard();
+            updateUtility();
+        });
+
         JButton passButton = new JButton("Pass");
+        passButton.addActionListener(actionEvent -> {
+            board.makePass();
+            updateBoard();
+            updateUtility();
+        });
+
+        JButton resignButton = new JButton("Resign");
+        resignButton.addActionListener(actionEvent -> {
+            String[] options = { "Yes", "No" };
+            int returnValue = JOptionPane.showOptionDialog(this,
+                    "Are you sure?",
+                    "Confirm resign",
+                    JOptionPane.YES_NO_OPTION,
+                    JOptionPane.INFORMATION_MESSAGE,
+                    null,
+                    options,
+                    options[1]);
+            if (returnValue == JOptionPane.OK_OPTION) {
+                this.isGameGoing = false;
+                // TODO
+            }
+        });
+
         jContols.add(undoButton);
         jContols.add(redoButton);
         jContols.add(passButton);
+        jContols.add(resignButton);
 
         jControlsPanel.add(jContols);
 
@@ -352,8 +390,6 @@ public class GUI extends JFrame {
         } else {
             getContentPane().remove(jStartScreenPanel);
         }
-        this.board = new Board(boardSize, komi);
-        this.setSize(new Dimension(1366, 768));
         this.setLayout(new FlowLayout());
         this.isGameGoing = true;
         initBoard();
@@ -367,6 +403,9 @@ public class GUI extends JFrame {
 
     void newGame(Board board) {
         this.board = board;
+        newGame(board.getBoardSize(), board.getKomi());
+        updateBoard();
+        updateUtility();
     }
 
 
