@@ -289,10 +289,15 @@ public class GUI extends JFrame {
         jControlsPanel.setLayout(utilityLayout);
         jControlsPanel.setPreferredSize(new Dimension(CONTROLLER_PANEL_WIDTH, BOARD_PANEL_DIMENSION));
 
+        // TODO - border indicates who is to move
         // Players info and avatars
-        JPanel jPlayerInfo = new JPanel(new GridLayout(2, 3));
-        JLabel blackPlayer = new JLabel( new ImageIcon("sprites/black_avatar.png"));
-        JLabel whitePlayer = new JLabel( new ImageIcon("sprites/white_avatar.png"));
+        JPanel jPlayerInfo = new JPanel(new GridLayout(3, 2));
+        JLabel blackPlayerName = new JLabel("Black (HUMAN)", JLabel.CENTER);
+        JLabel whitePlayerName = new JLabel("White (HUMAN)", JLabel.CENTER);
+        jPlayerInfo.add(blackPlayerName);
+        jPlayerInfo.add(whitePlayerName);
+        JLabel blackPlayer = new JLabel(new ImageIcon("sprites/black_avatar.png"));
+        JLabel whitePlayer = new JLabel(new ImageIcon("sprites/white_avatar.png"));
         jPlayerInfo.add(blackPlayer);
         jPlayerInfo.add(whitePlayer);
 

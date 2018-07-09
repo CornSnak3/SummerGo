@@ -86,7 +86,7 @@ public class MoveHistory {
                     int y = Integer.parseInt(temp[1]);
                     if (x == -1 && y == -1)
                         board.makePass();
-                    if (board.makeMove(x, y) == false)
+                    if (!board.makeMove(x, y))
                         throw new UnsupportedFileFormatException(file.getName());
                 }
                 return board;
