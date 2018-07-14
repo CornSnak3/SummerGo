@@ -23,6 +23,8 @@ public class Sprite {
     private static final ImageIcon grid_rs = new ImageIcon(new ImageIcon("sprites/grid_rs.png").getImage().getScaledInstance(MAXIMUM_IMAGE_SIZE, MAXIMUM_IMAGE_SIZE, Image.SCALE_FAST));
     private static final ImageIcon grid_ls = new ImageIcon(new ImageIcon("sprites/grid_ls.png").getImage().getScaledInstance(MAXIMUM_IMAGE_SIZE, MAXIMUM_IMAGE_SIZE, Image.SCALE_FAST));
     private static final ImageIcon spot = new ImageIcon(new ImageIcon("sprites/spot.png").getImage().getScaledInstance(MAXIMUM_IMAGE_SIZE, MAXIMUM_IMAGE_SIZE, Image.SCALE_FAST));
+    private static final ImageIcon w_point = new ImageIcon(new ImageIcon("sprites/w_point.png").getImage().getScaledInstance(MAXIMUM_IMAGE_SIZE, MAXIMUM_IMAGE_SIZE, Image.SCALE_FAST));
+    private static final ImageIcon b_point = new ImageIcon(new ImageIcon("sprites/b_point.png").getImage().getScaledInstance(MAXIMUM_IMAGE_SIZE, MAXIMUM_IMAGE_SIZE, Image.SCALE_FAST));
     private static final ImageIcon illegal = new ImageIcon(new ImageIcon("sprites/illegal.png").getImage().getScaledInstance(MAXIMUM_IMAGE_SIZE, MAXIMUM_IMAGE_SIZE, Image.SCALE_FAST));
 
     public static ImageIcon merge(ArrayList<ImageIcon> images) {

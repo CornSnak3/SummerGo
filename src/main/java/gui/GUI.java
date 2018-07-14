@@ -344,6 +344,12 @@ public class GUI extends JFrame {
             board.makePass();
             updateBoard();
             updateUtility();
+            if (board.isGameOver()) {
+                JOptionPane.showMessageDialog(this,
+                        "<html>Mark dead stones on board by clicking on them.<br>" +
+                                "When all dead stones are marked click on <b>Score</b></html>");
+                initScoring();
+            }
         });
 
         JButton jResignButton = new JButton("Resign");
@@ -365,9 +371,11 @@ public class GUI extends JFrame {
 
         JButton jScoreButton = new JButton("Score");
         jScoreButton.addActionListener(actionEvent -> {
-            double result = board.getResult();
-            String message = (result > 0) ? "White won by " + result : "Black won by" + result;
-            JOptionPane.showMessageDialog(this, message);
+            if (!isGameGoing) {
+                double result = board.getResult();
+                String message = (result > 0) ? "White won by " + result : "Black won by" + result;
+                JOptionPane.showMessageDialog(this, message);
+            }
         });
 
         jGameControls.add(jUndoButton);
@@ -384,6 +392,10 @@ public class GUI extends JFrame {
         jUtility = jUtilityPanel;
 
         getContentPane().add(jUtility);
+    }
+
+    public void initScoring() {
+
     }
 
     void updateBoard() {

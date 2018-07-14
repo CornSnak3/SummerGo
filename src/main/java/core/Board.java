@@ -72,9 +72,9 @@ public class Board {
         for (Intersection i : neighbours) {
             StoneColor intersectionColor = i.getColor();
             if (intersectionColor == currentPlayer.getColor())
-                adjacentPlayerStoneChains.add(new StoneChain(i));
+                adjacentPlayerStoneChains.add(new StoneChain(this, i));
             else if (intersectionColor == currentPlayer.getOpponent())
-                adjacentOpponentStoneChains.add(new StoneChain(i));
+                adjacentOpponentStoneChains.add(new StoneChain(this, i));
             else
                 currentMoveLiberties++;
         }
@@ -101,7 +101,7 @@ public class Board {
 
         // Check whether move is ko repetition
         if (deadStoneChains.size() == 1) {
-            StoneChain stoneChain = new StoneChain(intersection);
+            StoneChain stoneChain = new StoneChain(this, intersection);
             if (stoneChain.equals(lastCapturedStone))
                 return false;
             stoneChain = deadStoneChains.iterator().next();
@@ -142,7 +142,7 @@ public class Board {
     //TODO scoring
     private void gameOver() {
         isGameOver = true;
-        scorer = new Scorer();
+        scorer = new Scorer(this);
         //        String winner = (scorer.blackPoints > scorer.whitePoints) ? "BLACK" : "WHITE";
         //System.out.println("White points: " + scorer.whitePoints + "\tBlack points: " + scorer.blackPoints + "\nWinner is " + winner);
     }
@@ -249,6 +249,10 @@ public class Board {
         return playerTwo;
     }
 
+    public boolean isGameOver() {
+        return isGameOver;
+    }
+
     /**
      * Save current game in file
      * @param file file name
@@ -269,209 +273,6 @@ public class Board {
         return MoveHistory.loadGame(file);
     }
 
-    /**
-     * Class for stone chain. Used to calculate dead stones on-the-fly
-     *
-     */
-    private class StoneChain {
-
-        Set<Intersection> stones;
-        StoneColor color;
-
-        StoneChain(Intersection intersection) {
-            this.stones = new HashSet<>();
-            this.stones.add(intersection);
-            this.color = intersection.getColor();
-            makeStoneChainFromIntersection(intersection);
-        }
-
-        @Override
-        public int hashCode() {
-            int hashCode = 0;
-            for (Intersection i : stones)
-                hashCode += i.hashCode();
-            return hashCode;
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (obj == null)
-                return false;
-            if (obj instanceof StoneChain)
-                return (this.hashCode() == obj.hashCode());
-            return false;
-        }
-
-        void makeStoneChainFromIntersection(Intersection intersection) {
-            for (Intersection i : getNeighbours(intersection)) {
-                if (i.getColor() == intersection.getColor() && i.getColor() != StoneColor.EMPTY) {
-                    if (!stones.contains(i)) {
-                        stones.add(i);
-                        makeStoneChainFromIntersection(i);
-                    }
-                }
-            }
-        }
-
-        int getLibertiesCount() {
-            Set<Intersection> liberties = new HashSet<>();
-            for (Intersection i : stones)
-                for (Intersection j : getNeighbours(i))
-                    if (j.getColor() == StoneColor.EMPTY)
-                        liberties.add(j);
-
-            return liberties.size();
-        }
-
-        void die() {
-            for (Intersection i : stones) {
-                i.setColor(StoneColor.EMPTY);
-                if (currentPlayer == playerOne)
-                    playerOne.changeCapturedStones(1);
-                else
-                    playerTwo.changeCapturedStones(1);
-            }
-        }
-
-        int size() {
-            return this.stones.size();
-        }
-
-    }
-
-
-    private class EmptyRegion {
-        Set<Intersection> intersections;
-
-        EmptyRegion(Intersection intersection) {
-            this.intersections = new HashSet<>();
-            this.intersections.add(intersection);
-            makeEmptyRegionFromIntersection(intersection);
-        }
-
-        void makeEmptyRegionFromIntersection(Intersection intersection) {
-            for (Intersection i : getNeighbours(intersection)) {
-                if (i.getColor() == StoneColor.EMPTY) {
-                    if (!intersections.contains(i)) {
-                        intersections.add(i);
-                        makeEmptyRegionFromIntersection(i);
-                    }
-                }
-            }
-        }
-
-        int size() {
-            return intersections.size();
-        }
-
-        @Override
-        public int hashCode() {
-            int hashCode = 0;
-            for (Intersection i : intersections)
-                hashCode += i.hashCode();
-            return hashCode;
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (obj == null)
-                return false;
-            if (obj instanceof EmptyRegion)
-                return (this.hashCode() == obj.hashCode());
-            return false;
-        }
-    }
-    /**
-     * We assume that all dead stones are marked correctly
-     */
-    private class Scorer {
-        Set<StoneChain> blackStoneChains;
-        Set<StoneChain> whiteStoneChains;
-        Set<StoneChain> deadBlackStones;
-        Set<StoneChain> deadWhiteStones;
-        Set<EmptyRegion> emptyRegions;
-        double whitePoints, blackPoints;
-
-        Scorer() {
-            this.blackStoneChains = new HashSet<>();
-            this.whiteStoneChains = new HashSet<>();
-            this.deadBlackStones = new HashSet<>();
-            this.deadWhiteStones = new HashSet<>();
-            this.emptyRegions = new HashSet<>();
-            for (int x = 0; x < boardSize; x++) {
-                for (int y = 0; y < boardSize; y++) {
-                    Intersection intersection = getIntersection(x, y);
-                    switch (intersection.getColor()) {
-                        case BLACK:
-                            blackStoneChains.add(new StoneChain(intersection));
-                            break;
-                        case WHITE:
-                            whiteStoneChains.add(new StoneChain(intersection));
-                            break;
-                        case EMPTY:
-                            break;
-                    }
-                }
-            }
-        }
-
-        void processScore() {
-            for (int x = 0; x < boardSize; x++)
-                for (int y = 0; y < boardSize; y++)
-                    if (getIntersection(x, y).getColor() == StoneColor.EMPTY)
-                        emptyRegions.add(new EmptyRegion(getIntersection(x, y)));
-            for (EmptyRegion emptyRegion : emptyRegions) {
-                StoneColor owner = getOwnerOfARegion(emptyRegion);
-                if (owner == StoneColor.BLACK)
-                    blackPoints += emptyRegion.size();
-                else if (owner == StoneColor.WHITE)
-                    whitePoints += emptyRegion.size();
-            }
-            whitePoints += komi;
-            blackPoints += playerOne.getCapturedStones();
-            for (StoneChain stoneChain : deadBlackStones)
-                blackPoints += stoneChain.size();
-            for (StoneChain stoneChain : deadWhiteStones)
-                whitePoints += stoneChain.size();
-            whitePoints += playerTwo.getCapturedStones();
-        }
-
-        StoneColor getOwnerOfARegion(EmptyRegion emptyRegion) {
-            StoneColor owner = StoneColor.EMPTY;
-            for (Intersection intersection : emptyRegion.intersections)
-                for (Intersection i : getNeighbours(intersection))
-                    if ((owner = i.getColor()) != StoneColor.EMPTY)
-                        return owner;
-            return owner;
-        }
-
-        void flipDeathStatus(Intersection intersection) {
-            for (StoneChain stoneChain : blackStoneChains) {
-                if (stoneChain.stones.contains(intersection)) {
-                    blackStoneChains.remove(stoneChain);
-                    deadBlackStones.add(stoneChain);
-                }
-            }
-            for (StoneChain stoneChain : deadBlackStones) {
-                if (stoneChain.stones.contains(intersection)) {
-                    blackStoneChains.add(stoneChain);
-                    deadBlackStones.remove(stoneChain);
-                }
-            }
-            for (StoneChain stoneChain : whiteStoneChains) {
-                if (stoneChain.stones.contains(intersection)) {
-                    whiteStoneChains.remove(stoneChain);
-                    deadWhiteStones.add(stoneChain);
-                }
-            }
-            for (StoneChain stoneChain : deadWhiteStones) {
-                if (stoneChain.stones.contains(intersection)) {
-                   whiteStoneChains.add(stoneChain);
-                    deadWhiteStones.remove(stoneChain);
-                }
-            }
-        }
-    }
 
     @Override
     public String toString() {
