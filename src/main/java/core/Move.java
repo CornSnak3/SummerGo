@@ -1,22 +1,22 @@
 package core;
 
 public class Move {
-    private int player;
+    private StoneColor color;
     private int x, y;
     private int blackCaptures, whiteCaptures;
-    private final int[][] boardState;
+    private final StoneColor[][] boardState;
 
-    public Move(int x, int y, int player, int blackCaptures, int whiteCaptures, Board board) {
+    public Move(int x, int y, StoneColor color, int blackCaptures, int whiteCaptures, Board board) {
         this.x = x;
         this.y = y;
-        this.player = player;
+        this.color = color;
         this.blackCaptures = blackCaptures;
         this.whiteCaptures = whiteCaptures;
         int size = board.getBoardSize();
-        this.boardState = new int[size][size];
+        this.boardState = new StoneColor[size][size];
         for (int i = 0; i < size; i++) {
             for (int j = 0; j < size; j++)
-                this.boardState[i][j] = board.getIntersection(i, j).getState();
+                this.boardState[i][j] = board.getIntersection(i, j).getColor();
         }
     }
 
@@ -28,8 +28,8 @@ public class Move {
         return y;
     }
 
-    public int getPlayer() {
-        return player;
+    public StoneColor getColor() {
+        return color;
     }
 
     public int getBlackCaptures() {
@@ -40,7 +40,7 @@ public class Move {
         return whiteCaptures;
     }
 
-    public int[][] getBoardState() {
+    public StoneColor[][] getBoardState() {
         return boardState;
     }
 }

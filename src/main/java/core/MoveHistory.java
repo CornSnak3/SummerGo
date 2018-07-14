@@ -12,6 +12,7 @@ public class MoveHistory {
     private Stack<Move> subsequentMoves;
     private Move currentMove;
     private final Board board;
+    private String playerOneName, playerTwoName;
 
 
     public MoveHistory(Board board) {
@@ -19,23 +20,25 @@ public class MoveHistory {
         this.precedingMoves = new Stack<>();
         this.subsequentMoves = new Stack<>();
         this.currentMove = null;
+        this.playerOneName = board.getPlayerOne().getName();
+        this.playerTwoName = board.getPlayerTwo().getName();
     }
 
-    public void addMove(int x, int y, int player, int blackCaptures, int whiteCaptures) {
-        currentMove = new Move(x, y, player, blackCaptures, whiteCaptures, board);
+    public void addMove(int x, int y, StoneColor color, int blackCaptures, int whiteCaptures) {
+        currentMove = new Move(x, y, color, blackCaptures, whiteCaptures, board);
         precedingMoves.push(currentMove);
         subsequentMoves.clear();
     }
 
-    public int[][] undo() {
+    public StoneColor[][] undo() {
         return getIntersections(precedingMoves, subsequentMoves);
     }
     
-    public int[][] redo() {
+    public StoneColor[][] redo() {
         return getIntersections(subsequentMoves, precedingMoves);
     }
     
-    private int[][] getIntersections(Stack<Move> firstStack, Stack<Move> secondStack) {
+    private StoneColor[][] getIntersections(Stack<Move> firstStack, Stack<Move> secondStack) {
         if (firstStack.isEmpty())
             return null;
         int x = firstStack.peek().getX();
@@ -57,8 +60,11 @@ public class MoveHistory {
     public void saveGame(File file) throws IOException {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
             StringBuilder sb = new StringBuilder();
+            // Player names
+            sb.append(board.getPlayerOne().getName()).append(',').append(board.getPlayerTwo().getName()).append('\n');
             // Game conditions
             sb.append(board.getBoardSize()).append(',').append(board.getKomi()).append('\n');
+            // Moves
             for (Move precedingMove : precedingMoves) {
                 sb.append(precedingMove.getX()).append(',').append(precedingMove.getY()).append(';');
             }
@@ -68,12 +74,15 @@ public class MoveHistory {
 
     public static Board loadGame(File file) throws UnsupportedFileFormatException, IOException {
         try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
-            String[] gameConditions = reader.readLine().split(",");
             try {
+                String[] playerNames = reader.readLine().split(",");
+                if (playerNames.length != 2)
+                    throw new UnsupportedFileFormatException(file.getName());
+                String[] gameConditions = reader.readLine().split(",");
                 // Reading game conditions: board size and komi
                 int boardSize = Integer.parseInt(gameConditions[0]);
                 double komi = Double.parseDouble(gameConditions[1]);
-                Board board = new Board(boardSize, komi);
+                Board board = new Board(boardSize, komi, playerNames[0], playerNames[1]);
                 // Reading coordinates
                 Scanner scanner = new Scanner(reader.readLine());
                 scanner.useDelimiter(";");

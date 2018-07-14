@@ -1,6 +1,7 @@
 package gui;
 
 import core.Board;
+import core.StoneColor;
 import core.exception.UnsupportedFileFormatException;
 
 import javax.swing.*;
@@ -13,20 +14,26 @@ import java.io.IOException;
 
 public class GUI extends JFrame {
 
-    public final int TOKEN_INITIAL_SIZE = 35;
-    public final int MENU_SIZE = 42;
-    public final int CONTROLLER_PANEL_WIDTH = 610;
-    public final int BOARD_PANEL_DIMENSION = 706 - 10;
+    public final Dimension MAIN_WINDOW_DIMENSION = new Dimension(1366, 768);
+    public final int UTILITY_PANEL_WIDTH = 610;
+    public final int BOARD_PANEL_SIZE = 696;
 
-    private final Dimension BOARD_PANEL = new Dimension(BOARD_PANEL_DIMENSION, BOARD_PANEL_DIMENSION);
+    private final Dimension BOARD_PANEL_DIMENSION = new Dimension(BOARD_PANEL_SIZE, BOARD_PANEL_SIZE);
+    private final Dimension UTILITY_PANEL_DIMENSION = new Dimension(UTILITY_PANEL_WIDTH, BOARD_PANEL_SIZE);
 
-    private JPanel jBoard;
+    // JPanel for start screen
     private JPanel jStartScreenPanel;
 
+    // JPanel for board
+    private JPanel jBoard;
+
     private JPanel jUtility;
+    JPanel jBlackPlayer;
+    JPanel jWhitePlayer;
     JLabel blackPlayerCaptures;
     JLabel whitePlayerCaptures;
 
+    // Menu Bar
     private JMenuBar jMenuBar;
     private JMenu jMenuGame;
     private JMenu jMenuHelp;
@@ -38,9 +45,7 @@ public class GUI extends JFrame {
     private JMenuItem jGameLoad;
     private JMenuItem jGameExit;
 
-    private final int WINDOW_WIDTH = 1366;
-    private final int WINDOW_HEIGHT = 768 - MENU_SIZE;
-
+    // Board that handles game logic
     private Board board;
     private boolean isGameGoing;
 
@@ -52,12 +57,13 @@ public class GUI extends JFrame {
         initMenu();
         initWindow();
         showStartScreen();
+        revalidate();
     }
 
     void initWindow() {
         setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
         setTitle("Summer Go");
-        setSize(new Dimension(1366, 768));
+        setSize(MAIN_WINDOW_DIMENSION);
         setResizable(false);
         setVisible(true);
     }
@@ -92,8 +98,17 @@ public class GUI extends JFrame {
 
     private ActionListener getNewGameListener() {
         return (actionEvent -> {
-            JPanel inputPanel = new JPanel(new GridLayout(2, 2));
+            JPanel inputPanel = new JPanel(new GridLayout(4, 2));
 
+            JLabel playerOneNameLabel = new JLabel("Player 1: ", JLabel.CENTER);
+            inputPanel.add(playerOneNameLabel);
+            JTextField playerOneNameTextField = new JTextField();
+            inputPanel.add(playerOneNameTextField);
+
+            JLabel playerTwoNameLabel = new JLabel("Player 2: ", JLabel.CENTER);
+            inputPanel.add(playerTwoNameLabel);
+            JTextField playerTwoNameTextField = new JTextField();
+            inputPanel.add(playerTwoNameTextField);
             // Board size
             JLabel boardSizeLabel = new JLabel("Size: ", JLabel.CENTER);
             inputPanel.add(boardSizeLabel);
@@ -118,7 +133,7 @@ public class GUI extends JFrame {
             if (boardSizeChoose == JOptionPane.OK_OPTION) {
                 int boardSize = Integer.parseInt(((String) boardSizeComboBox.getSelectedItem()).split("x")[0]);
                 double komi = Double.parseDouble(komiSizeTextField.getText());
-                this.board = new Board(boardSize, komi);
+                this.board = new Board(boardSize, komi, playerOneNameTextField.getText(), playerTwoNameTextField.getText());
                 newGame(boardSize, komi);
             }
         });
@@ -243,19 +258,20 @@ public class GUI extends JFrame {
             jIntersections = new JButton[boardSize][boardSize];
             for (int x = 0; x < boardSize; x++) {
                 for (int y = 0; y < boardSize; y++) {
-                    jIntersections[x][y] = new JButton(Sprite.getIcon(0, x, y, boardSize));
+                    jIntersections[x][y] = new JButton(Sprite.getIcon(StoneColor.EMPTY, x, y, boardSize));
                     jIntersections[x][y].setEnabled(true);
                     jIntersections[x][y].setBorder(BorderFactory.createEmptyBorder());
                     jIntersections[x][y].setContentAreaFilled(false);
-                    jIntersections[x][y].setMinimumSize(new Dimension(BOARD_PANEL_DIMENSION / boardSize, BOARD_PANEL_DIMENSION / boardSize));
-                    jIntersections[x][y].setPreferredSize(new Dimension(BOARD_PANEL_DIMENSION / boardSize, BOARD_PANEL_DIMENSION / boardSize));
-                    jIntersections[x][y].setMaximumSize(new Dimension(BOARD_PANEL_DIMENSION / boardSize, BOARD_PANEL_DIMENSION / boardSize));
+                    jIntersections[x][y].setMinimumSize(new Dimension(BOARD_PANEL_SIZE / boardSize, BOARD_PANEL_SIZE / boardSize));
+                    jIntersections[x][y].setPreferredSize(new Dimension(BOARD_PANEL_SIZE / boardSize, BOARD_PANEL_SIZE / boardSize));
+                    jIntersections[x][y].setMaximumSize(new Dimension(BOARD_PANEL_SIZE / boardSize, BOARD_PANEL_SIZE / boardSize));
 
                     int finalX = x;
                     int finalY = y;
                     jIntersections[x][y].addActionListener(actionPerformed -> {
-                        if (!isGameGoing)
-                            return;
+                        if (!isGameGoing) {
+                            board.flipDeadStones(finalX, finalY);
+                        }
                         if (board.makeMove(finalX, finalY)) {
                             updateBoard();
                             updateUtility();
@@ -265,18 +281,10 @@ public class GUI extends JFrame {
                 }
             }
 
-            jBoard.setMinimumSize(BOARD_PANEL);
-            jBoard.setPreferredSize(BOARD_PANEL);
-            jBoard.setMaximumSize(BOARD_PANEL);
+            jBoard.setMinimumSize(BOARD_PANEL_DIMENSION);
+            jBoard.setPreferredSize(BOARD_PANEL_DIMENSION);
+            jBoard.setMaximumSize(BOARD_PANEL_DIMENSION);
             jBoard.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-
-            /*GridBagConstraints boardGridBagConstraints = new GridBagConstraints();
-            boardGridBagConstraints.gridx = 0;
-            boardGridBagConstraints.gridy = 0;
-            boardGridBagConstraints.weightx = BOARD_PANEL_DIMENSION / this.getWidth();
-            boardGridBagConstraints.weighty = BOARD_PANEL_DIMENSION / this.getHeight();
-            boardGridBagConstraints.anchor = GridBagConstraints.WEST;
-            boardGridBagConstraints.fill = GridBagConstraints.NONE;*/
 
             getContentPane().add(jBoard);
         }
@@ -284,55 +292,62 @@ public class GUI extends JFrame {
 
     void initUtility() {
 
-        JPanel jControlsPanel = new JPanel();
-        BoxLayout utilityLayout = new BoxLayout(jControlsPanel, BoxLayout.Y_AXIS);
-        jControlsPanel.setLayout(utilityLayout);
-        jControlsPanel.setPreferredSize(new Dimension(CONTROLLER_PANEL_WIDTH, BOARD_PANEL_DIMENSION));
+        JPanel jUtilityPanel = new JPanel();
+        BoxLayout utilityLayout = new BoxLayout(jUtilityPanel, BoxLayout.Y_AXIS);
+        jUtilityPanel.setLayout(utilityLayout);
+        jUtilityPanel.setPreferredSize(UTILITY_PANEL_DIMENSION);
 
-        // TODO - border indicates who is to move
         // Players info and avatars
-        JPanel jPlayerInfo = new JPanel(new GridLayout(3, 2));
-        JLabel blackPlayerName = new JLabel("Black (HUMAN)", JLabel.CENTER);
-        JLabel whitePlayerName = new JLabel("White (HUMAN)", JLabel.CENTER);
-        jPlayerInfo.add(blackPlayerName);
-        jPlayerInfo.add(whitePlayerName);
-        JLabel blackPlayer = new JLabel(new ImageIcon("sprites/black_avatar.png"));
-        JLabel whitePlayer = new JLabel(new ImageIcon("sprites/white_avatar.png"));
-        jPlayerInfo.add(blackPlayer);
-        jPlayerInfo.add(whitePlayer);
+        JPanel jPlayerInfo = new JPanel(new GridLayout(1, 2));
+
+        // Black player
+        jBlackPlayer = new JPanel(new GridLayout(3, 1));
+        JLabel jBlackPlayerName = new JLabel(board.getPlayerOne().getName() + "(Black)", JLabel.CENTER);
+        JLabel jBlackPlayerAvatar = new JLabel(new ImageIcon("sprites/black_avatar.png"));
+        blackPlayerCaptures = new JLabel("0", Sprite.p2, JLabel.CENTER);
+        jBlackPlayer.add(jBlackPlayerName);
+        jBlackPlayer.add(jBlackPlayerAvatar);
+        jBlackPlayer.add(blackPlayerCaptures);
+        jPlayerInfo.add(jBlackPlayer);
+
+        // White player
+        jWhitePlayer = new JPanel(new GridLayout(3, 1));
+        JLabel jWhitePlayerName = new JLabel(board.getPlayerTwo().getName() + "(White)", JLabel.CENTER);
+        JLabel jWhitePlayerAvatar = new JLabel(new ImageIcon("sprites/white_avatar.png"));
+        whitePlayerCaptures = new JLabel("0", Sprite.p1, JLabel.CENTER);
+        jWhitePlayer.add(jWhitePlayerName);
+        jWhitePlayer.add(jWhitePlayerAvatar);
+        jWhitePlayer.add(whitePlayerCaptures);
+        jPlayerInfo.add(jWhitePlayer);
 
         // Captured stones
-        blackPlayerCaptures = new JLabel("0", Sprite.p2, JLabel.CENTER);
-        whitePlayerCaptures = new JLabel("0", Sprite.p1, JLabel.CENTER);
-        jPlayerInfo.add(blackPlayerCaptures);
-        jPlayerInfo.add(whitePlayerCaptures);
 
-        jControlsPanel.add(jPlayerInfo);
+        jUtilityPanel.add(jPlayerInfo);
 
-        JPanel jContols = new JPanel(new FlowLayout());
-        JButton undoButton = new JButton("Undo");
-        undoButton.addActionListener(actionEvent -> {
+        JPanel jGameControls = new JPanel(new GridLayout(1, 4, 0, 50));
+        JButton jUndoButton = new JButton("Undo");
+        jUndoButton.addActionListener(actionEvent -> {
             board.undo();
             updateBoard();
             updateUtility();
         });
 
-        JButton redoButton = new JButton("Redo");
-        redoButton.addActionListener(actionEvent -> {
+        JButton jRedoButton = new JButton("Redo");
+        jRedoButton.addActionListener(actionEvent -> {
             board.redo();
             updateBoard();
             updateUtility();
         });
 
-        JButton passButton = new JButton("Pass");
-        passButton.addActionListener(actionEvent -> {
+        JButton jPassButton = new JButton("Pass");
+        jPassButton.addActionListener(actionEvent -> {
             board.makePass();
             updateBoard();
             updateUtility();
         });
 
-        JButton resignButton = new JButton("Resign");
-        resignButton.addActionListener(actionEvent -> {
+        JButton jResignButton = new JButton("Resign");
+        jResignButton.addActionListener(actionEvent -> {
             String[] options = { "Yes", "No" };
             int returnValue = JOptionPane.showOptionDialog(this,
                     "Are you sure?",
@@ -348,29 +363,25 @@ public class GUI extends JFrame {
             }
         });
 
-        jContols.add(undoButton);
-        jContols.add(redoButton);
-        jContols.add(passButton);
-        jContols.add(resignButton);
+        JButton jScoreButton = new JButton("Score");
+        jScoreButton.addActionListener(actionEvent -> {
+            double result = board.getResult();
+            String message = (result > 0) ? "White won by " + result : "Black won by" + result;
+            JOptionPane.showMessageDialog(this, message);
+        });
 
-        jControlsPanel.add(jContols);
+        jGameControls.add(jUndoButton);
+        jGameControls.add(jRedoButton);
+        jGameControls.add(jPassButton);
+        jGameControls.add(jResignButton);
+        jGameControls.add(jScoreButton);
 
-        //Console
-        //JTextPane jEventConsole = new JTextPane();
+        jUtilityPanel.add(jGameControls);
 
-        //jControlsPanel.add(jEventConsole);
-        jControlsPanel.setBorder(new BevelBorder(0));
+        jUtilityPanel.setBorder(new BevelBorder(0));
 
-        /*GridBagConstraints utilityGridBagConstraints = new GridBagConstraints();
-        utilityGridBagConstraints.ipadx = 50;
-        utilityGridBagConstraints.gridx = 1;
-        utilityGridBagConstraints.gridy = 0;
-        utilityGridBagConstraints.fill = GridBagConstraints.BOTH;*/
-        //utilityGridBagConstraints.weightx = CONTROLLER_PANEL_WIDTH / this.getWidth();
-        //utilityGridBagConstraints.weighty = BOARD_PANEL_DIMENSION / this.getHeight();
-        //utilityGridBagConstraints.anchor = GridBagConstraints.FIRST_LINE_END;
 
-        jUtility = jControlsPanel;
+        jUtility = jUtilityPanel;
 
         getContentPane().add(jUtility);
     }
@@ -378,12 +389,21 @@ public class GUI extends JFrame {
     void updateBoard() {
         for (int x = 0; x < board.getBoardSize(); x++) {
             for (int y = 0; y < board.getBoardSize(); y++) {
-                jIntersections[x][y].setIcon(Sprite.getIcon(board.getIntersection(x, y).getState(), x, y, board.getBoardSize()));
+                jIntersections[x][y].setIcon(Sprite.getIcon(board.getIntersection(x, y).getColor(), x, y, board.getBoardSize()));
             }
         }
     }
 
     void updateUtility() {
+        StoneColor currentPlayerColor = board.getCurrentPlayer().getColor();
+        if (currentPlayerColor == StoneColor.BLACK) {
+            jWhitePlayer.setBorder(BorderFactory.createEmptyBorder());
+            jBlackPlayer.setBorder(BorderFactory.createLineBorder(Color.RED, 2));
+        } else {
+            jBlackPlayer.setBorder(BorderFactory.createEmptyBorder());
+            jWhitePlayer.setBorder(BorderFactory.createLineBorder(Color.RED, 2));
+        }
+
         blackPlayerCaptures.setText(String.valueOf(board.getBlackCaptures()));
         whitePlayerCaptures.setText(String.valueOf(board.getWhiteCaptures()));
     }

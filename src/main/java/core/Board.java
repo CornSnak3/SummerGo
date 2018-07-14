@@ -6,15 +6,19 @@ import core.exception.UnsupportedFileFormatException;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Set;
 
 public class Board {
+
+    // Scoring
+    Scorer scorer;
 
     private final MoveHistory moveHistory;
 
     private final int boardSize;
     private double komi;
+
+    // Current board state
     private Intersection[][] intersections;
 
     // Necessary for ko rule implementation
@@ -23,22 +27,20 @@ public class Board {
     private boolean wasPreviousMovePass;
     private boolean isGameOver;
 
-    // Represents player that makes move next (-1 for Black, 1 for White)
-    private int currentPlayer;
+    // Player that makes move next (-1 for Black, 1 for White)
+    private Player playerOne, playerTwo;
+    private Player currentPlayer;
 
-    // Numbers of captured stones
-    private int blackCaptures;
-    private int whiteCaptures;
-
-    public Board(int boardSize, double komi) {
+    public Board(int boardSize, double komi, String playerOneName, String playerTwoName) {
         this.boardSize = boardSize;
         this.komi = komi;
+        this.playerOne = new Player(playerOneName, StoneColor.BLACK);
+        this.playerTwo = new Player(playerTwoName, StoneColor.WHITE);
         this.moveHistory = new MoveHistory(this);
         this.wasPreviousMovePass = false;
         this.isGameOver = false;
-        this.currentPlayer = -1;
-        this.blackCaptures = this.whiteCaptures = 0;
 
+        this.currentPlayer = playerOne;
         // Initialize intersections
         this.intersections = new Intersection[boardSize][boardSize];
         for (int x = 0; x < boardSize; x++)
@@ -58,7 +60,7 @@ public class Board {
         Intersection intersection = getIntersection(x, y);
 
         // Check whether intersection is occupied
-        if (intersection.getState() != 0)
+        if (intersection.getColor() != StoneColor.EMPTY)
             return false;
 
         Set<Intersection> neighbours = getNeighbours(intersection);
@@ -68,10 +70,10 @@ public class Board {
         Set<StoneChain> adjacentOpponentStoneChains = new HashSet<>();
         int currentMoveLiberties = 0;
         for (Intersection i : neighbours) {
-            int state = i.getState();
-            if (state == currentPlayer)
+            StoneColor intersectionColor = i.getColor();
+            if (intersectionColor == currentPlayer.getColor())
                 adjacentPlayerStoneChains.add(new StoneChain(i));
-            else if (state == -currentPlayer)
+            else if (intersectionColor == currentPlayer.getOpponent())
                 adjacentOpponentStoneChains.add(new StoneChain(i));
             else
                 currentMoveLiberties++;
@@ -113,8 +115,8 @@ public class Board {
             stoneChain.die();
 
 
-        intersections[x][y].setState(currentPlayer);
-        moveHistory.addMove(x, y, currentPlayer, blackCaptures, whiteCaptures);
+        intersections[x][y].setColor(currentPlayer.getColor());
+        moveHistory.addMove(x, y, currentPlayer.getColor(), playerOne.getCapturedStones(), playerTwo.getCapturedStones());
         wasPreviousMovePass = false;
         changePlayer();
         return true;
@@ -127,17 +129,27 @@ public class Board {
         if (wasPreviousMovePass)
             gameOver();
 
-        moveHistory.addMove(-1, -1, currentPlayer, blackCaptures, whiteCaptures);
+        moveHistory.addMove(-1, -1, currentPlayer.getColor(), playerOne.getCapturedStones(), playerTwo.getCapturedStones());
+        wasPreviousMovePass = true;
         changePlayer();
+    }
+
+    public void flipDeadStones(int x, int y) {
+        Intersection intersection = getIntersection(x, y);
+
     }
 
     //TODO scoring
     private void gameOver() {
         isGameOver = true;
-        Scorer scorer = new Scorer();
+        scorer = new Scorer();
+        //        String winner = (scorer.blackPoints > scorer.whitePoints) ? "BLACK" : "WHITE";
+        //System.out.println("White points: " + scorer.whitePoints + "\tBlack points: " + scorer.blackPoints + "\nWinner is " + winner);
+    }
+
+    public double getResult() {
         scorer.processScore();
-        String winner = (scorer.blackPoints > scorer.whitePoints) ? "BLACK" : "WHITE";
-        System.out.println("White points: " + scorer.whitePoints + "\tBlack points: " + scorer.blackPoints + "\nWinner is " + winner);
+        return scorer.whitePoints - scorer.blackPoints;
     }
 
     public void undo() {
@@ -152,20 +164,20 @@ public class Board {
      * Utility function for undo/redo mechanics
      * @param boardState board state retrieved from undo() or redo() method
      */
-    private void proceedMoveHistory(int[][] boardState) {
+    private void proceedMoveHistory(StoneColor[][] boardState) {
         if (boardState != null) {
             Move move = moveHistory.getCurrentMove();
-            blackCaptures = move.getBlackCaptures();
-            whiteCaptures = move.getWhiteCaptures();
+            playerOne.setCapturedStones(move.getBlackCaptures());
+            playerTwo.setCapturedStones(move.getWhiteCaptures());
             for (int x = 0; x < boardSize; x++)
                 for (int y = 0; y < boardSize; y++)
-                    intersections[x][y].setState(boardState[x][y]);
+                    intersections[x][y].setColor(boardState[x][y]);
         }
     }
 
 
     private void changePlayer() {
-        currentPlayer = (currentPlayer == -1) ? 1 : -1;
+        currentPlayer = (currentPlayer == playerOne) ? playerTwo : playerOne;
     }
 
     public boolean isOnBoard(int x, int y) {
@@ -217,16 +229,24 @@ public class Board {
         return boardSize;
     }
 
-    public int getCurrentPlayer() {
+    public Player getCurrentPlayer() {
         return currentPlayer;
     }
 
     public int getBlackCaptures() {
-        return blackCaptures;
+        return playerOne.getCapturedStones();
     }
 
     public int getWhiteCaptures() {
-        return whiteCaptures;
+        return playerTwo.getCapturedStones();
+    }
+
+    public Player getPlayerOne() {
+        return playerOne;
+    }
+
+    public Player getPlayerTwo() {
+        return playerTwo;
     }
 
     /**
@@ -256,12 +276,12 @@ public class Board {
     private class StoneChain {
 
         Set<Intersection> stones;
-        int player;
+        StoneColor color;
 
         StoneChain(Intersection intersection) {
             this.stones = new HashSet<>();
             this.stones.add(intersection);
-            this.player = intersection.getState();
+            this.color = intersection.getColor();
             makeStoneChainFromIntersection(intersection);
         }
 
@@ -284,7 +304,7 @@ public class Board {
 
         void makeStoneChainFromIntersection(Intersection intersection) {
             for (Intersection i : getNeighbours(intersection)) {
-                if (i.getState() == intersection.getState() && i.getState() != 0) {
+                if (i.getColor() == intersection.getColor() && i.getColor() != StoneColor.EMPTY) {
                     if (!stones.contains(i)) {
                         stones.add(i);
                         makeStoneChainFromIntersection(i);
@@ -297,7 +317,7 @@ public class Board {
             Set<Intersection> liberties = new HashSet<>();
             for (Intersection i : stones)
                 for (Intersection j : getNeighbours(i))
-                    if (j.getState() == 0)
+                    if (j.getColor() == StoneColor.EMPTY)
                         liberties.add(j);
 
             return liberties.size();
@@ -305,11 +325,11 @@ public class Board {
 
         void die() {
             for (Intersection i : stones) {
-                i.setState(0);
-                if (currentPlayer == -1)
-                    blackCaptures++;
+                i.setColor(StoneColor.EMPTY);
+                if (currentPlayer == playerOne)
+                    playerOne.changeCapturedStones(1);
                 else
-                    whiteCaptures++;
+                    playerTwo.changeCapturedStones(1);
             }
         }
 
@@ -319,31 +339,76 @@ public class Board {
 
     }
 
+
+    private class EmptyRegion {
+        Set<Intersection> intersections;
+
+        EmptyRegion(Intersection intersection) {
+            this.intersections = new HashSet<>();
+            this.intersections.add(intersection);
+            makeEmptyRegionFromIntersection(intersection);
+        }
+
+        void makeEmptyRegionFromIntersection(Intersection intersection) {
+            for (Intersection i : getNeighbours(intersection)) {
+                if (i.getColor() == StoneColor.EMPTY) {
+                    if (!intersections.contains(i)) {
+                        intersections.add(i);
+                        makeEmptyRegionFromIntersection(i);
+                    }
+                }
+            }
+        }
+
+        int size() {
+            return intersections.size();
+        }
+
+        @Override
+        public int hashCode() {
+            int hashCode = 0;
+            for (Intersection i : intersections)
+                hashCode += i.hashCode();
+            return hashCode;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (obj == null)
+                return false;
+            if (obj instanceof EmptyRegion)
+                return (this.hashCode() == obj.hashCode());
+            return false;
+        }
+    }
     /**
      * We assume that all dead stones are marked correctly
      */
     private class Scorer {
         Set<StoneChain> blackStoneChains;
         Set<StoneChain> whiteStoneChains;
-        Set<StoneChain> emptyRegions;
+        Set<StoneChain> deadBlackStones;
+        Set<StoneChain> deadWhiteStones;
+        Set<EmptyRegion> emptyRegions;
         double whitePoints, blackPoints;
 
         Scorer() {
             this.blackStoneChains = new HashSet<>();
             this.whiteStoneChains = new HashSet<>();
+            this.deadBlackStones = new HashSet<>();
+            this.deadWhiteStones = new HashSet<>();
             this.emptyRegions = new HashSet<>();
             for (int x = 0; x < boardSize; x++) {
                 for (int y = 0; y < boardSize; y++) {
                     Intersection intersection = getIntersection(x, y);
-                    switch (intersection.getState()) {
-                        case 0:
-                            emptyRegions.add(new StoneChain(intersection));
-                            break;
-                        case -1:
+                    switch (intersection.getColor()) {
+                        case BLACK:
                             blackStoneChains.add(new StoneChain(intersection));
                             break;
-                        case 1:
+                        case WHITE:
                             whiteStoneChains.add(new StoneChain(intersection));
+                            break;
+                        case EMPTY:
                             break;
                     }
                 }
@@ -351,32 +416,67 @@ public class Board {
         }
 
         void processScore() {
-            for (StoneChain emptyRegion : emptyRegions) {
-                int owner = getOwnerOfARegion(emptyRegion);
-                if (owner == -1)
+            for (int x = 0; x < boardSize; x++)
+                for (int y = 0; y < boardSize; y++)
+                    if (getIntersection(x, y).getColor() == StoneColor.EMPTY)
+                        emptyRegions.add(new EmptyRegion(getIntersection(x, y)));
+            for (EmptyRegion emptyRegion : emptyRegions) {
+                StoneColor owner = getOwnerOfARegion(emptyRegion);
+                if (owner == StoneColor.BLACK)
                     blackPoints += emptyRegion.size();
-                else if (owner == 1)
+                else if (owner == StoneColor.WHITE)
                     whitePoints += emptyRegion.size();
             }
             whitePoints += komi;
-            blackPoints += blackCaptures;
-            whitePoints += whiteCaptures;
+            blackPoints += playerOne.getCapturedStones();
+            for (StoneChain stoneChain : deadBlackStones)
+                blackPoints += stoneChain.size();
+            for (StoneChain stoneChain : deadWhiteStones)
+                whitePoints += stoneChain.size();
+            whitePoints += playerTwo.getCapturedStones();
         }
 
-        int getOwnerOfARegion(StoneChain emptyRegion) {
-            int owner = 0;
-            for (Intersection intersection : emptyRegion.stones)
+        StoneColor getOwnerOfARegion(EmptyRegion emptyRegion) {
+            StoneColor owner = StoneColor.EMPTY;
+            for (Intersection intersection : emptyRegion.intersections)
                 for (Intersection i : getNeighbours(intersection))
-                    if ((owner = i.getState()) != 0)
+                    if ((owner = i.getColor()) != StoneColor.EMPTY)
                         return owner;
             return owner;
+        }
+
+        void flipDeathStatus(Intersection intersection) {
+            for (StoneChain stoneChain : blackStoneChains) {
+                if (stoneChain.stones.contains(intersection)) {
+                    blackStoneChains.remove(stoneChain);
+                    deadBlackStones.add(stoneChain);
+                }
+            }
+            for (StoneChain stoneChain : deadBlackStones) {
+                if (stoneChain.stones.contains(intersection)) {
+                    blackStoneChains.add(stoneChain);
+                    deadBlackStones.remove(stoneChain);
+                }
+            }
+            for (StoneChain stoneChain : whiteStoneChains) {
+                if (stoneChain.stones.contains(intersection)) {
+                    whiteStoneChains.remove(stoneChain);
+                    deadWhiteStones.add(stoneChain);
+                }
+            }
+            for (StoneChain stoneChain : deadWhiteStones) {
+                if (stoneChain.stones.contains(intersection)) {
+                   whiteStoneChains.add(stoneChain);
+                    deadWhiteStones.remove(stoneChain);
+                }
+            }
         }
     }
 
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        sb.append("Black: ").append(blackCaptures).append("   White: ").append(whiteCaptures).append('\n');
+        sb.append("Black: ").append(playerOne.getCapturedStones()).append("   White: ").append(playerTwo.getCapturedStones()).append('\n');
         sb.append("  ");
         for (int i = 0; i < boardSize; i++)
             sb.append(i).append(' ');

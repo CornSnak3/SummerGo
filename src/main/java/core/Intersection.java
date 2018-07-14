@@ -1,17 +1,19 @@
 package core;
 
+import static core.StoneColor.*;
+
 /**
- * Class for intersection. Stores intersection coordinates and current state
+ * Class for intersection. Stores intersection coordinates and current color
  */
 public class Intersection {
     private final int x, y;
-    // Representation of intersection state (-1 for Black, 0 for Empty, 1 for White)
-    private int state;
+    // Representation of intersection color (-1 for Black, 0 for Empty, 1 for White)
+    private StoneColor color;
 
     public Intersection(int x, int y) {
         this.x = x;
         this.y = y;
-        this.state = 0;
+        this.color = EMPTY;
     }
 
     public int getX() {
@@ -22,14 +24,12 @@ public class Intersection {
         return y;
     }
 
-    public int getState() {
-        return state;
+    public StoneColor getColor() {
+        return color;
     }
 
-    public void setState(int state) {
-        if (state != -1 && state !=0 && state != 1)
-            throw new IllegalArgumentException("Illegal interception state");
-        this.state = state;
+    public void setColor(StoneColor color) {
+        this.color = color;
     }
 
     @Override
@@ -47,14 +47,14 @@ public class Intersection {
 
     @Override
     public String toString() {
-        switch(state) {
-            case -1:
+        switch(color) {
+            case BLACK:
                 return "B";
-            case 0:
+            case EMPTY:
                 return "+";
-            case 1:
+            case WHITE:
                 return "W";
         }
-        throw new IllegalArgumentException("Illegal interception state");
+        throw new IllegalArgumentException("Illegal interception color");
     }
 }
