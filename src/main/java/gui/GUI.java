@@ -5,7 +5,6 @@ import core.StoneColor;
 import core.exception.UnsupportedFileFormatException;
 
 import javax.swing.*;
-import javax.swing.border.BevelBorder;
 import java.awt.*;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
@@ -14,9 +13,11 @@ import java.io.IOException;
 
 public class GUI extends JFrame {
 
-    public final Dimension MAIN_WINDOW_DIMENSION = new Dimension(1366, 768);
-    public final int UTILITY_PANEL_WIDTH = 610;
-    public final int BOARD_PANEL_SIZE = 696;
+    private Sprite sprites;
+
+    private final Dimension MAIN_WINDOW_DIMENSION = new Dimension(1366, 768);
+    private final int UTILITY_PANEL_WIDTH = 410;
+    private final int BOARD_PANEL_SIZE = 696;
 
     private final Dimension BOARD_PANEL_DIMENSION = new Dimension(BOARD_PANEL_SIZE, BOARD_PANEL_SIZE);
     private final Dimension UTILITY_PANEL_DIMENSION = new Dimension(UTILITY_PANEL_WIDTH, BOARD_PANEL_SIZE);
@@ -28,22 +29,10 @@ public class GUI extends JFrame {
     private JPanel jBoard;
 
     private JPanel jUtility;
-    JPanel jBlackPlayer;
-    JPanel jWhitePlayer;
-    JLabel blackPlayerCaptures;
-    JLabel whitePlayerCaptures;
-
-    // Menu Bar
-    private JMenuBar jMenuBar;
-    private JMenu jMenuGame;
-    private JMenu jMenuHelp;
-    private JMenu jMenuAbout;
-
-    // Game Menu
-    private JMenuItem jGameNew;
-    private JMenuItem jGameSave;
-    private JMenuItem jGameLoad;
-    private JMenuItem jGameExit;
+    private JPanel jBlackPlayer;
+    private JPanel jWhitePlayer;
+    private JLabel blackPlayerCaptures;
+    private JLabel whitePlayerCaptures;
 
     // Board that handles game logic
     private Board board;
@@ -60,7 +49,7 @@ public class GUI extends JFrame {
         revalidate();
     }
 
-    void initWindow() {
+    private void initWindow() {
         setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
         setTitle("Summer Go");
         setSize(MAIN_WINDOW_DIMENSION);
@@ -68,7 +57,7 @@ public class GUI extends JFrame {
         setVisible(true);
     }
 
-    void showStartScreen() {
+    private void showStartScreen() {
         GridLayout startScreenLayout = new GridLayout(3, 1, 0, 50);
         
         jStartScreenPanel = new JPanel(startScreenLayout);
@@ -139,6 +128,29 @@ public class GUI extends JFrame {
         });
     }
 
+    private ActionListener getSaveGameListener() {
+        return (actionEvent -> {
+            if (this.board == null)
+                return;
+            JFileChooser fileChooser = new JFileChooser();
+            fileChooser.setDialogTitle("Choose a directory to save game: ");
+            // TODO
+            // fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+            int returnValue = fileChooser.showSaveDialog(this);
+            if (returnValue == JFileChooser.APPROVE_OPTION) {
+                File file = fileChooser.getSelectedFile();
+                try {
+                    this.board.saveGame(file);
+                } catch (IOException exc) {
+                    JOptionPane.showMessageDialog(null,
+                            "<html>Problem saving to file: </b>" + file.getName() + "</b></html>",
+                            "Saving error",
+                            JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
+    }
+
     private ActionListener getLoadGameListener() {
         return (actionEvent -> {
             JFileChooser fileChooser = new JFileChooser();
@@ -179,47 +191,30 @@ public class GUI extends JFrame {
         });
     }
 
-    void initMenu() {
-        jMenuBar = new JMenuBar();
+    private void initMenu() {
+        // Menu Bar
+        JMenuBar jMenuBar = new JMenuBar();
 
-        jMenuGame = new JMenu("Game");
-        jMenuHelp = new JMenu("Help");
-        jMenuAbout = new JMenu("About");
+        JMenu jMenuGame = new JMenu("Game");
+        JMenu jMenuHelp = new JMenu("Help");
+        JMenu jMenuAbout = new JMenu("About");
 
         // Game menu
-        jGameNew = new JMenuItem("New Game");
+        // Game Menu
+        JMenuItem jGameNew = new JMenuItem("New Game");
         jGameNew.setAccelerator(KeyStroke.getKeyStroke("control N"));
 
         jGameNew.addActionListener(getNewGameListener());
 
-        jGameSave = new JMenuItem("Save Game");
+        JMenuItem jGameSave = new JMenuItem("Save Game");
         jGameSave.setAccelerator(KeyStroke.getKeyStroke("control S"));
-        jGameSave.addActionListener(actionEvent -> {
-            if (this.board == null)
-                return;
-            JFileChooser fileChooser = new JFileChooser();
-            fileChooser.setDialogTitle("Choose a directory to save game: ");
-            // TODO
-            // fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-            int returnValue = fileChooser.showSaveDialog(this);
-            if (returnValue == JFileChooser.APPROVE_OPTION) {
-                File file = fileChooser.getSelectedFile();
-                try {
-                    this.board.saveGame(file);
-                } catch (IOException exc) {
-                    JOptionPane.showMessageDialog(null,
-                            "<html>Problem saving to file: </b>" + file.getName() + "</b></html>",
-                            "Saving error",
-                            JOptionPane.ERROR_MESSAGE);
-                }
-            }
-        });
+        jGameSave.addActionListener(getSaveGameListener());
 
-        jGameLoad = new JMenuItem("Load Game");
+        JMenuItem jGameLoad = new JMenuItem("Load Game");
         jGameLoad.setAccelerator(KeyStroke.getKeyStroke("control O"));
         jGameLoad.addActionListener(getLoadGameListener());
 
-        jGameExit = new JMenuItem("Exit");
+        JMenuItem jGameExit = new JMenuItem("Exit");
         jGameExit.setAccelerator(KeyStroke.getKeyStroke("control Q"));
         jGameExit.addActionListener(getExitGameListener());
 
@@ -250,7 +245,7 @@ public class GUI extends JFrame {
         this.setJMenuBar(jMenuBar);
     }
 
-    void initBoard() {
+    private void initBoard() {
         jBoard = new JPanel();
         if (board != null) {
             int boardSize = board.getBoardSize();
@@ -258,7 +253,7 @@ public class GUI extends JFrame {
             jIntersections = new JButton[boardSize][boardSize];
             for (int x = 0; x < boardSize; x++) {
                 for (int y = 0; y < boardSize; y++) {
-                    jIntersections[x][y] = new JButton(Sprite.getIcon(StoneColor.EMPTY, x, y, boardSize));
+                    jIntersections[x][y] = new JButton(sprites.getIcon(StoneColor.EMPTY, x, y, boardSize));
                     jIntersections[x][y].setEnabled(true);
                     jIntersections[x][y].setBorder(BorderFactory.createEmptyBorder());
                     jIntersections[x][y].setContentAreaFilled(false);
@@ -290,21 +285,27 @@ public class GUI extends JFrame {
         }
     }
 
-    void initUtility() {
+    private void initUtility() {
 
-        JPanel jUtilityPanel = new JPanel();
-        BoxLayout utilityLayout = new BoxLayout(jUtilityPanel, BoxLayout.Y_AXIS);
-        jUtilityPanel.setLayout(utilityLayout);
+        JPanel jUtilityPanel = new JPanel(new GridBagLayout());
         jUtilityPanel.setPreferredSize(UTILITY_PANEL_DIMENSION);
+        jUtilityPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        GridBagConstraints constraints = new GridBagConstraints();
+        constraints.gridx = 0;
+        constraints.gridy = 0;
+        constraints.gridwidth = 5;
+        constraints.gridheight = 5;
+        constraints.insets = new Insets(20, 20, 20, 20);
 
         // Players info and avatars
-        JPanel jPlayerInfo = new JPanel(new GridLayout(1, 2));
+        JPanel jPlayerInfo = new JPanel(new GridLayout(1, 2, 60, 0));
 
         // Black player
         jBlackPlayer = new JPanel(new GridLayout(3, 1));
         JLabel jBlackPlayerName = new JLabel(board.getPlayerOne().getName() + "(Black)", JLabel.CENTER);
         JLabel jBlackPlayerAvatar = new JLabel(new ImageIcon("sprites/black_avatar.png"));
-        blackPlayerCaptures = new JLabel("0", Sprite.p2, JLabel.CENTER);
+        blackPlayerCaptures = new JLabel("0", sprites.b_captured, JLabel.CENTER);
         jBlackPlayer.add(jBlackPlayerName);
         jBlackPlayer.add(jBlackPlayerAvatar);
         jBlackPlayer.add(blackPlayerCaptures);
@@ -314,7 +315,7 @@ public class GUI extends JFrame {
         jWhitePlayer = new JPanel(new GridLayout(3, 1));
         JLabel jWhitePlayerName = new JLabel(board.getPlayerTwo().getName() + "(White)", JLabel.CENTER);
         JLabel jWhitePlayerAvatar = new JLabel(new ImageIcon("sprites/white_avatar.png"));
-        whitePlayerCaptures = new JLabel("0", Sprite.p1, JLabel.CENTER);
+        whitePlayerCaptures = new JLabel("0", sprites.w_captured, JLabel.CENTER);
         jWhitePlayer.add(jWhitePlayerName);
         jWhitePlayer.add(jWhitePlayerAvatar);
         jWhitePlayer.add(whitePlayerCaptures);
@@ -322,9 +323,9 @@ public class GUI extends JFrame {
 
         // Captured stones
 
-        jUtilityPanel.add(jPlayerInfo);
+        jUtilityPanel.add(jPlayerInfo, constraints);
 
-        JPanel jGameControls = new JPanel(new GridLayout(1, 4, 0, 50));
+        JPanel jGameControls = new JPanel(new GridLayout(1, 4, 10, 50));
         JButton jUndoButton = new JButton("Undo");
         jUndoButton.addActionListener(actionEvent -> {
             board.undo();
@@ -384,29 +385,33 @@ public class GUI extends JFrame {
         jGameControls.add(jResignButton);
         jGameControls.add(jScoreButton);
 
-        jUtilityPanel.add(jGameControls);
+        constraints.gridx = 0;
+        constraints.gridy = 8;
+        constraints.gridheight = 1;
 
-        jUtilityPanel.setBorder(new BevelBorder(0));
+        jUtilityPanel.add(jGameControls, constraints);
 
+        //jUtilityPanel.setBorder(new BevelBorder(0));
 
         jUtility = jUtilityPanel;
 
         getContentPane().add(jUtility);
     }
 
-    public void initScoring() {
+    // TODO
+    private void initScoring() {
 
     }
 
-    void updateBoard() {
+    private void updateBoard() {
         for (int x = 0; x < board.getBoardSize(); x++) {
             for (int y = 0; y < board.getBoardSize(); y++) {
-                jIntersections[x][y].setIcon(Sprite.getIcon(board.getIntersection(x, y).getColor(), x, y, board.getBoardSize()));
+                jIntersections[x][y].setIcon(sprites.getIcon(board.getIntersection(x, y).getColor(), x, y, board.getBoardSize()));
             }
         }
     }
 
-    void updateUtility() {
+    private void updateUtility() {
         StoneColor currentPlayerColor = board.getCurrentPlayer().getColor();
         if (currentPlayerColor == StoneColor.BLACK) {
             jWhitePlayer.setBorder(BorderFactory.createEmptyBorder());
@@ -420,12 +425,15 @@ public class GUI extends JFrame {
         whitePlayerCaptures.setText(String.valueOf(board.getWhiteCaptures()));
     }
 
-    void newGame(int boardSize, double komi) {
+    private void newGame(int boardSize, double komi) {
         if (isGameGoing) {
             getContentPane().remove(jBoard);
             getContentPane().remove(jUtility);
+            if (sprites.getBoardSize() != boardSize)
+                sprites = new Sprite(boardSize);
         } else {
             getContentPane().remove(jStartScreenPanel);
+            sprites = new Sprite(boardSize);
         }
         this.setLayout(new FlowLayout());
         this.isGameGoing = true;
@@ -434,16 +442,16 @@ public class GUI extends JFrame {
         initUtility();
         revalidate();
         repaint();
-
-
     }
 
-    void newGame(Board board) {
+    private void newGame(Board board) {
         this.board = board;
         newGame(board.getBoardSize(), board.getKomi());
         updateBoard();
         updateUtility();
     }
 
-
+    public Board getBoard() {
+        return board;
+    }
 }

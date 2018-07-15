@@ -1,6 +1,5 @@
 package core;
 
-import core.exception.OutOfBoardException;
 import core.exception.UnsupportedFileFormatException;
 
 import java.io.File;
@@ -139,12 +138,9 @@ public class Board {
 
     }
 
-    //TODO scoring
     private void gameOver() {
         isGameOver = true;
         scorer = new Scorer(this);
-        //        String winner = (scorer.blackPoints > scorer.whitePoints) ? "BLACK" : "WHITE";
-        //System.out.println("White points: " + scorer.whitePoints + "\tBlack points: " + scorer.blackPoints + "\nWinner is " + winner);
     }
 
     public double getResult() {
@@ -180,26 +176,24 @@ public class Board {
         currentPlayer = (currentPlayer == playerOne) ? playerTwo : playerOne;
     }
 
-    public boolean isOnBoard(int x, int y) {
-        return (x > 0 || y > 0 || x < boardSize || y < boardSize);
+    boolean isOnBoard(int x, int y) {
+        return (x >= 0 && y >= 0 && x < boardSize && y < boardSize);
     }
 
     /**
      * Get intersection for the given coordinates
-     * @param x
-     * @param y
+     * @param x first coordinate
+     * @param y second coordinate
      * @return Intersection corresponding to coordinates (x, y)
      */
     public Intersection getIntersection(int x, int y) {
-        if (!isOnBoard(x, y))
-            throw new OutOfBoardException("Coordinate (" + x + ", " + y +") is out of board");
         return intersections[x][y];
     }
 
     /**
      * Get neighbouring intersections for given intersection
-     * @param intersection
-     * @return Set of neighbouring intersectons
+     * @param intersection intersection
+     * @return Set of neighbouring intersections
      */
     Set<Intersection> getNeighbours(Intersection intersection) {
         Set<Intersection> neighbours = new HashSet<>();

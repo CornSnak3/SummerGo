@@ -1,6 +1,5 @@
 package core;
 
-import core.exception.OutOfBoardException;
 import core.exception.UnsupportedFileFormatException;
 
 import java.io.*;
@@ -15,7 +14,7 @@ public class MoveHistory {
     private String playerOneName, playerTwoName;
 
 
-    public MoveHistory(Board board) {
+    MoveHistory(Board board) {
         this.board = board;
         this.precedingMoves = new Stack<>();
         this.subsequentMoves = new Stack<>();
@@ -24,7 +23,7 @@ public class MoveHistory {
         this.playerTwoName = board.getPlayerTwo().getName();
     }
 
-    public void addMove(int x, int y, StoneColor color, int blackCaptures, int whiteCaptures) {
+    void addMove(int x, int y, StoneColor color, int blackCaptures, int whiteCaptures) {
         currentMove = new Move(x, y, color, blackCaptures, whiteCaptures, board);
         precedingMoves.push(currentMove);
         subsequentMoves.clear();
@@ -101,8 +100,6 @@ public class MoveHistory {
                 return board;
             } catch (UnsupportedFileFormatException | NumberFormatException exc) {
                 throw new UnsupportedFileFormatException("Save file " + file.getName() + " is broken");
-            } catch (OutOfBoardException exc) {
-                throw new UnsupportedFileFormatException("Save file " + file.getName() + " contains illegal coordinates");
             }
         }
     }
