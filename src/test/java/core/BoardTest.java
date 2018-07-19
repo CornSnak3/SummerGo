@@ -52,11 +52,4 @@ class BoardTest {
                 assertTrue(board.isOnBoard(i, j));
     }
 
-    @org.junit.jupiter.api.Test
-    void saveGame() {
-    }
-
-    @org.junit.jupiter.api.Test
-    void loadGame() {
-    }
 }

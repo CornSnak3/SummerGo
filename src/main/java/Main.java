@@ -1,5 +1,3 @@
-import core.Board;
-import core.MoveHistory;
 import gui.GUI;
 
 public class Main {

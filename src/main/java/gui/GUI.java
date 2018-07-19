@@ -38,6 +38,8 @@ public class GUI extends JFrame {
     private Board board;
     private boolean isGameGoing;
 
+    private boolean startScreenOn;
+
     private JButton[][] jIntersections;
 
     public GUI() {
@@ -58,6 +60,9 @@ public class GUI extends JFrame {
     }
 
     private void showStartScreen() {
+
+        this.startScreenOn = true;
+
         GridLayout startScreenLayout = new GridLayout(3, 1, 0, 50);
         
         jStartScreenPanel = new JPanel(startScreenLayout);
@@ -89,6 +94,7 @@ public class GUI extends JFrame {
         return (actionEvent -> {
             JPanel inputPanel = new JPanel(new GridLayout(4, 2));
 
+            // Player names
             JLabel playerOneNameLabel = new JLabel("Player 1: ", JLabel.CENTER);
             inputPanel.add(playerOneNameLabel);
             JTextField playerOneNameTextField = new JTextField();
@@ -98,6 +104,7 @@ public class GUI extends JFrame {
             inputPanel.add(playerTwoNameLabel);
             JTextField playerTwoNameTextField = new JTextField();
             inputPanel.add(playerTwoNameTextField);
+
             // Board size
             JLabel boardSizeLabel = new JLabel("Size: ", JLabel.CENTER);
             inputPanel.add(boardSizeLabel);
@@ -134,8 +141,7 @@ public class GUI extends JFrame {
                 return;
             JFileChooser fileChooser = new JFileChooser();
             fileChooser.setDialogTitle("Choose a directory to save game: ");
-            // TODO
-            // fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+            // TODO specify file format and directory
             int returnValue = fileChooser.showSaveDialog(this);
             if (returnValue == JFileChooser.APPROVE_OPTION) {
                 File file = fileChooser.getSelectedFile();
@@ -155,6 +161,7 @@ public class GUI extends JFrame {
         return (actionEvent -> {
             JFileChooser fileChooser = new JFileChooser();
             fileChooser.setDialogTitle("Choose a file containing a game: ");
+            // TODO  specify file format and directory
             int returnValue = fileChooser.showOpenDialog(this);
             if (returnValue == JFileChooser.APPROVE_OPTION) {
                 File file = fileChooser.getSelectedFile();
@@ -199,7 +206,6 @@ public class GUI extends JFrame {
         JMenu jMenuHelp = new JMenu("Help");
         JMenu jMenuAbout = new JMenu("About");
 
-        // Game menu
         // Game Menu
         JMenuItem jGameNew = new JMenuItem("New Game");
         jGameNew.setAccelerator(KeyStroke.getKeyStroke("control N"));
@@ -232,6 +238,7 @@ public class GUI extends JFrame {
         });
 
         // About menu
+        jMenuAbout.setMnemonic(KeyEvent.VK_A);
         jMenuAbout.addActionListener(actionEvent -> {
             // TODO
         });
@@ -309,6 +316,7 @@ public class GUI extends JFrame {
         jBlackPlayer.add(jBlackPlayerName);
         jBlackPlayer.add(jBlackPlayerAvatar);
         jBlackPlayer.add(blackPlayerCaptures);
+        jBlackPlayer.setBorder(BorderFactory.createLineBorder(Color.RED, 1));
         jPlayerInfo.add(jBlackPlayer);
 
         // White player
@@ -325,7 +333,7 @@ public class GUI extends JFrame {
 
         jUtilityPanel.add(jPlayerInfo, constraints);
 
-        JPanel jGameControls = new JPanel(new GridLayout(1, 4, 10, 50));
+        JPanel jGameControls = new JPanel(new GridLayout(1, 4, 0, 30));
         JButton jUndoButton = new JButton("Undo");
         jUndoButton.addActionListener(actionEvent -> {
             board.undo();
@@ -350,6 +358,7 @@ public class GUI extends JFrame {
                         "<html>Mark dead stones on board by clicking on them.<br>" +
                                 "When all dead stones are marked click on <b>Score</b></html>");
                 initScoring();
+                isGameGoing = false;
             }
         });
 
@@ -374,8 +383,9 @@ public class GUI extends JFrame {
         jScoreButton.addActionListener(actionEvent -> {
             if (!isGameGoing) {
                 double result = board.getResult();
-                String message = (result > 0) ? "White won by " + result : "Black won by" + result;
+                String message = (result > 0) ? "White won by " + Math.abs(result) : "Black won by " + Math.abs(result);
                 JOptionPane.showMessageDialog(this, message);
+                result = 0;
             }
         });
 
@@ -390,8 +400,6 @@ public class GUI extends JFrame {
         constraints.gridheight = 1;
 
         jUtilityPanel.add(jGameControls, constraints);
-
-        //jUtilityPanel.setBorder(new BevelBorder(0));
 
         jUtility = jUtilityPanel;
 
@@ -415,10 +423,10 @@ public class GUI extends JFrame {
         StoneColor currentPlayerColor = board.getCurrentPlayer().getColor();
         if (currentPlayerColor == StoneColor.BLACK) {
             jWhitePlayer.setBorder(BorderFactory.createEmptyBorder());
-            jBlackPlayer.setBorder(BorderFactory.createLineBorder(Color.RED, 2));
+            jBlackPlayer.setBorder(BorderFactory.createLineBorder(Color.RED, 1));
         } else {
             jBlackPlayer.setBorder(BorderFactory.createEmptyBorder());
-            jWhitePlayer.setBorder(BorderFactory.createLineBorder(Color.RED, 2));
+            jWhitePlayer.setBorder(BorderFactory.createLineBorder(Color.RED, 1));
         }
 
         blackPlayerCaptures.setText(String.valueOf(board.getBlackCaptures()));
@@ -426,7 +434,7 @@ public class GUI extends JFrame {
     }
 
     private void newGame(int boardSize, double komi) {
-        if (isGameGoing) {
+        if (!startScreenOn) {
             getContentPane().remove(jBoard);
             getContentPane().remove(jUtility);
             if (sprites.getBoardSize() != boardSize)

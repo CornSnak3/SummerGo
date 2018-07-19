@@ -99,7 +99,7 @@ public class Board {
         }
 
         // Check whether move is ko repetition
-        if (deadStoneChains.size() == 1) {
+        /*if (deadStoneChains.size() == 1) {
             StoneChain stoneChain = new StoneChain(this, intersection);
             if (stoneChain.equals(lastCapturedStone))
                 return false;
@@ -107,7 +107,7 @@ public class Board {
             lastCapturedStone = (stoneChain.size() == 1) ? stoneChain : null;
         } else {
             lastCapturedStone = null;
-        }
+        }*/
 
         // Remove all dead stones from board
         for (StoneChain stoneChain : deadStoneChains)
